@@ -1030,7 +1030,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 				tt := time.Now()
 				log.Debug("Write gov state", "n", n, "t", tt)
 				govState, err := state.GetGovState(statedb, block.Header(),
-					vm.GovernanceContractAddress)
+					evm.GovernanceContractAddress)
 				log.Debug("Get gov state finished", "n", n, "elapsed", time.Since(tt))
 				if err == nil {
 					bc.govmu.Lock()
