@@ -192,17 +192,17 @@ func (s *StorageTestSuite) TestSequence() {
 	table2 := schema.TableRef(1)
 	contract := common.BytesToAddress([]byte("A"))
 
-	s.Require().Equal(uint64(0), s.storage.IncSequence(contract, table1, 0, 2))
-	s.Require().Equal(uint64(2), s.storage.IncSequence(contract, table1, 0, 1))
-	s.Require().Equal(uint64(3), s.storage.IncSequence(contract, table1, 0, 1))
+	s.Require().Equal(uint64(2), s.storage.IncSequence(contract, table1, 0, 2).Rescale(0).Coefficient().Uint64())
+	s.Require().Equal(uint64(3), s.storage.IncSequence(contract, table1, 0, 1).Rescale(0).Coefficient().Uint64())
+	s.Require().Equal(uint64(4), s.storage.IncSequence(contract, table1, 0, 1).Rescale(0).Coefficient().Uint64())
 	// Repeat on another sequence.
-	s.Require().Equal(uint64(0), s.storage.IncSequence(contract, table1, 1, 1))
-	s.Require().Equal(uint64(1), s.storage.IncSequence(contract, table1, 1, 2))
-	s.Require().Equal(uint64(3), s.storage.IncSequence(contract, table1, 1, 3))
+	s.Require().Equal(uint64(1), s.storage.IncSequence(contract, table1, 1, 1).Rescale(0).Coefficient().Uint64())
+	s.Require().Equal(uint64(3), s.storage.IncSequence(contract, table1, 1, 2).Rescale(0).Coefficient().Uint64())
+	s.Require().Equal(uint64(6), s.storage.IncSequence(contract, table1, 1, 3).Rescale(0).Coefficient().Uint64())
 	// Repeat on another table.
-	s.Require().Equal(uint64(0), s.storage.IncSequence(contract, table2, 0, 3))
-	s.Require().Equal(uint64(3), s.storage.IncSequence(contract, table2, 0, 4))
-	s.Require().Equal(uint64(7), s.storage.IncSequence(contract, table2, 0, 5))
+	s.Require().Equal(uint64(3), s.storage.IncSequence(contract, table2, 0, 3).Rescale(0).Coefficient().Uint64())
+	s.Require().Equal(uint64(7), s.storage.IncSequence(contract, table2, 0, 4).Rescale(0).Coefficient().Uint64())
+	s.Require().Equal(uint64(12), s.storage.IncSequence(contract, table2, 0, 5).Rescale(0).Coefficient().Uint64())
 }
 
 func (s *StorageTestSuite) TestPKHeaderEncodeDecode() {

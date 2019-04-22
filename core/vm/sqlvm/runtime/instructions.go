@@ -1917,3 +1917,79 @@ func opRepeatPK(ctx *common.Context, input []*Operand, registers []*Operand, out
 	registers[output], err = uint64ToOperands(IDs)
 	return
 }
+
+// fillAutoInc returns the operand reference with incremented value.
+func fillAutoInc(
+	ctx *common.Context,
+	col schema.Column,
+	tableRef schema.TableRef,
+) (*Operand, error) {
+	f := func(col schema.Column) (*Operand, error) {
+		dVal := ctx.Storage.IncSequence(ctx.Contract.Address(),
+			tableRef, uint8(col.Sequence), 1)
+		_, max, ok := col.Type.GetMinMax()
+		if !ok {
+			return nil, se.ErrorCodeInvalidDataType
+		}
+		if dVal.Cmp(max) > 0 {
+			return nil, se.ErrorCodeOverflow
+		}
+		op := &Operand{
+			Meta: []ast.DataType{col.Type},
+			Data: []Tuple{
+				{
+					&Raw{
+						Value: dVal,
+						Bytes: nil,
+					},
+				},
+			},
+		}
+		return op, nil
+	}
+	return fillMissingData(ctx, col, f)
+}
+
+func fillMissingData(
+	ctx *common.Context,
+	col schema.Column,
+	f func(schema.Column) (*Operand, error),
+) (*Operand, error) {
+	return f(col)
+}
+
+// fillDefault returns the operand reference with default value.
+func fillDefault(
+	ctx *common.Context,
+	col schema.Column,
+) (*Operand, error) {
+	f := func(col schema.Column) (*Operand, error) {
+		var r Raw
+		major, _ := ast.DecomposeDataType(col.Type)
+		switch major {
+		case ast.DataTypeMajorDynamicBytes, ast.DataTypeMajorAddress:
+			r = Raw{
+				Bytes: col.Default.([]byte),
+			}
+		case ast.DataTypeMajorBool:
+			b := col.Default.(bool)
+			if b {
+				r = Raw{Value: dec.True}
+			} else {
+				r = Raw{Value: dec.False}
+			}
+		default:
+			r = Raw{Value: col.Default.(decimal.Decimal)}
+		}
+		op := &Operand{
+			Meta: []ast.DataType{col.Type},
+			Data: []Tuple{
+				{
+					&r,
+				},
+			},
+		}
+		return op, nil
+	}
+	return fillMissingData(ctx, col, f)
+}

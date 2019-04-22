@@ -55,7 +55,7 @@ func createSchema(storage *common.Storage, raws []*raw) {
 		storage.Schema[1].Columns[i] = schema.NewColumn(
 			[]byte{byte(i)},
 			ast.ComposeDataType(raws[i].major, raws[i].minor),
-			0, nil, 0,
+			0, nil, 0, nil,
 		)
 	}
 	storage.Schema.SetupColumnOffset()
@@ -481,12 +481,6 @@ func (s opRepeatPKSuite) TestRepeatPK() {
 	}
 }
 
-func TestInstructions(t *testing.T) {
-	suite.Run(t, new(opLoadSuite))
-	suite.Run(t, new(opRepeatPKSuite))
-	suite.Run(t, new(instructionSuite))
-}
-
 func makeOperand(im bool, meta []ast.DataType, pTuple []Tuple) (op *Operand) {
 	op = &Operand{IsImmediate: im, Meta: meta, Data: pTuple}
 	return
@@ -540,4 +534,289 @@ func (s *instructionSuite) run(testcases []opTestcase, opfunc OpFunction) {
 			idx, c.In.Op, c.Name, c.Output, result,
 		)
 	}
+}
+
+type autoIncSuite struct {
+	suite.Suite
+	ctx *common.Context
+}
+
+func (s *autoIncSuite) SetupTest() {
+	s.ctx = &common.Context{}
+	s.ctx.Storage = newStorage()
+	address := dexCommon.HexToAddress("0x6655")
+	s.ctx.Storage.CreateAccount(address)
+	s.ctx.Contract = vm.NewContract(vm.AccountRef(address),
+		vm.AccountRef(address), new(big.Int), 0)
+	s.ctx.Storage.Schema = schema.Schema{
+		schema.Table{
+			Name: []byte("normal_case"),
+			Columns: []schema.Column{
+				schema.NewColumn(
+					[]byte("c1"),
+					ast.ComposeDataType(ast.DataTypeMajorInt, 0),
+					schema.ColumnAttrHasSequence,
+					nil,
+					0,
+					nil,
+				),
+				schema.NewColumn(
+					[]byte("c2"),
+					ast.ComposeDataType(ast.DataTypeMajorUint, 0),
+					schema.ColumnAttrHasSequence,
+					nil,
+					1,
+					nil,
+				),
+			},
+		},
+		schema.Table{
+			Name: []byte("overflow_int_case"),
+			Columns: []schema.Column{
+				schema.NewColumn(
+					[]byte("c1"),
+					ast.ComposeDataType(ast.DataTypeMajorInt, 0),
+					schema.ColumnAttrHasSequence,
+					nil,
+					0,
+					nil,
+				),
+			},
+		},
+		schema.Table{
+			Name: []byte("overflow_uint_case"),
+			Columns: []schema.Column{
+				schema.NewColumn(
+					[]byte("c1"),
+					ast.ComposeDataType(ast.DataTypeMajorUint, 0),
+					schema.ColumnAttrHasSequence,
+					nil,
+					0,
+					nil,
+				),
+			},
+		},
+	}
+	s.SetOverflow(1, 0, ast.ComposeDataType(ast.DataTypeMajorInt, 0))
+	s.SetOverflow(2, 0, ast.ComposeDataType(ast.DataTypeMajorUint, 0))
+	s.ctx.Storage.Schema.SetupColumnOffset()
+}
+
+func (s *autoIncSuite) SetOverflow(tableRef schema.TableRef, seqIdx uint8, dt ast.DataType) {
+	storage := s.ctx.Storage
+	seqPath := storage.GetSequencePathHash(tableRef, seqIdx)
+	newHash := make([]byte, dexCommon.HashLength)
+	_, max, _ := dt.GetMinMax()
+	bs, _ := ast.DecimalEncode(dt, max)
+	copy(newHash[len(newHash)-len(bs):], bs)
+	storage.SetState(s.ctx.Contract.Address(), seqPath, dexCommon.BytesToHash(newHash))
+}
+
+func (s *autoIncSuite) TestFillAutoInc() {
+	type testcase struct {
+		name     string
+		col      schema.Column
+		tableRef schema.TableRef
+		result   *Operand
+		err      error
+	}
+	tt := []testcase{
+		{
+			name:     "normal case 1",
+			col:      s.ctx.Storage.Schema[0].Columns[0],
+			tableRef: schema.TableRef(0),
+			result: &Operand{
+				Meta: []ast.DataType{ast.ComposeDataType(ast.DataTypeMajorInt, 0)},
+				Data: []Tuple{
+					{
+						&Raw{
+							Value: decimal.New(1, 0),
+						},
+					},
+				},
+			},
+			err: nil,
+		},
+		{
+			name:     "normal case 2",
+			col:      s.ctx.Storage.Schema[0].Columns[1],
+			tableRef: schema.TableRef(0),
+			result: &Operand{
+				Meta: []ast.DataType{ast.ComposeDataType(ast.DataTypeMajorUint, 0)},
+				Data: []Tuple{
+					{
+						&Raw{
+							Value: decimal.New(1, 0),
+						},
+					},
+				},
+			},
+			err: nil,
+		},
+		{
+			name:     "int overflow",
+			col:      s.ctx.Storage.Schema[1].Columns[0],
+			tableRef: schema.TableRef(1),
+			result:   nil,
+			err:      errors.ErrorCodeOverflow,
+		},
+		{
+			name:     "unt overflow",
+			col:      s.ctx.Storage.Schema[2].Columns[0],
+			tableRef: schema.TableRef(2),
+			result:   nil,
+			err:      errors.ErrorCodeOverflow,
+		},
+	}
+
+	for _, t := range tt {
+		r, err := fillAutoInc(s.ctx, t.col, t.tableRef)
+		s.Require().Equalf(t.err, err, "testcase %v\n", t.name)
+		if t.err == nil {
+			s.Require().Truef(r.Equal(t.result),
+				"testcase: %v", t.name)
+		}
+	}
+}
+
+type setDefaultSuite struct {
+	suite.Suite
+	ctx *common.Context
+}
+
+func (s *setDefaultSuite) SetupTest() {
+	s.ctx = &common.Context{}
+	s.ctx.Storage = newStorage()
+	address := dexCommon.HexToAddress("0x6655")
+	s.ctx.Storage.CreateAccount(address)
+	s.ctx.Contract = vm.NewContract(vm.AccountRef(address),
+		vm.AccountRef(address), new(big.Int), 0)
+	s.ctx.Storage.Schema = schema.Schema{
+		schema.Table{
+			Name: []byte("table1"),
+			Columns: []schema.Column{
+				schema.NewColumn(
+					[]byte("c1"),
+					ast.ComposeDataType(ast.DataTypeMajorInt, 0),
+					schema.ColumnAttrHasDefault,
+					nil,
+					0,
+					decimal.New(127, 0),
+				),
+				schema.NewColumn(
+					[]byte("c2"),
+					ast.ComposeDataType(ast.DataTypeMajorDynamicBytes, 0),
+					schema.ColumnAttrHasDefault,
+					nil,
+					0,
+					[]byte{1, 2, 3, 4},
+				),
+				schema.NewColumn(
+					[]byte("c3"),
+					ast.ComposeDataType(ast.DataTypeMajorUint, 0),
+					schema.ColumnAttrHasDefault,
+					nil,
+					1,
+					decimal.New(255, 0),
+				),
+				schema.NewColumn(
+					[]byte("c4"),
+					ast.ComposeDataType(ast.DataTypeMajorAddress, 0),
+					schema.ColumnAttrHasDefault,
+					nil,
+					1,
+					address[:],
+				),
+			},
+		},
+	}
+	s.ctx.Storage.Schema.SetupColumnOffset()
+}
+
+func (s *setDefaultSuite) TestFillDefault() {
+	type testcase struct {
+		name   string
+		col    schema.Column
+		result *Operand
+		err    error
+	}
+	tt := []testcase{
+		{
+			name: "int8",
+			col:  s.ctx.Storage.Schema[0].Columns[0],
+			result: &Operand{
+				Meta: []ast.DataType{ast.ComposeDataType(ast.DataTypeMajorInt, 0)},
+				Data: []Tuple{
+					{
+						&Raw{
+							Value: decimal.New(127, 0),
+						},
+					},
+				},
+			},
+			err: nil,
+		},
+		{
+			name: "dynamic byes",
+			col:  s.ctx.Storage.Schema[0].Columns[1],
+			result: &Operand{
+				Meta: []ast.DataType{ast.ComposeDataType(ast.DataTypeMajorDynamicBytes, 0)},
+				Data: []Tuple{
+					{
+						&Raw{
+							Bytes: []byte{1, 2, 3, 4},
+						},
+					},
+				},
+			},
+			err: nil,
+		},
+		{
+			name: "uint8",
+			col:  s.ctx.Storage.Schema[0].Columns[2],
+			result: &Operand{
+				Meta: []ast.DataType{ast.ComposeDataType(ast.DataTypeMajorUint, 0)},
+				Data: []Tuple{
+					{
+						&Raw{
+							Value: decimal.New(255, 0),
+						},
+					},
+				},
+			},
+			err: nil,
+		},
+		{
+			name: "address",
+			col:  s.ctx.Storage.Schema[0].Columns[3],
+			result: &Operand{
+				Meta: []ast.DataType{ast.ComposeDataType(ast.DataTypeMajorAddress, 0)},
+				Data: []Tuple{
+					{
+						&Raw{
+							Bytes: dexCommon.HexToAddress("0x6655").Bytes(),
+						},
+					},
+				},
+			},
+			err: nil,
+		},
+	}
+
+	for _, t := range tt {
+		r, err := fillDefault(s.ctx, t.col)
+		s.Require().Equalf(t.err, err, "testcase %v\n", t.name)
+		if t.err == nil {
+			s.Require().Truef(r.Equal(t.result),
+				"testcase: %v", t.name)
+		}
+	}
+}
+
+func TestInstructions(t *testing.T) {
+	suite.Run(t, new(opLoadSuite))
+	suite.Run(t, new(opRepeatPKSuite))
+	suite.Run(t, new(instructionSuite))
+	suite.Run(t, new(autoIncSuite))
+	suite.Run(t, new(setDefaultSuite))
 }
