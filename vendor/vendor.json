@@ -139,10 +139,10 @@
 			"versionExact": "dev"
 		},
 		{
-			"checksumSHA1": "7puYGOPhizIgr5nZ6GcRPNfr4Dc=",
+			"checksumSHA1": "YyJHUZ/uQM+qwymBCH1fhLTQtds=",
 			"path": "github.com/dexon-foundation/decimal",
-			"revision": "05ad7315b3c581519964b7762074e00de3c4ceac",
-			"revisionTime": "2019-03-25T09:02:55Z"
+			"revision": "f9f60f8590bfa9da46f7c607089a3d36c54e2043",
+			"revisionTime": "2019-04-17T09:32:26Z"
 		},
 		{
 			"checksumSHA1": "In6vBHYUsX7DUIGiFN2hQggBgvI=",
