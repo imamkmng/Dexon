@@ -863,7 +863,7 @@ func checkExpr(n ast.ExprNode,
 		return checkAndOperator(n, s, o, c, el, tr, ta)
 
 	case *ast.OrOperatorNode:
-		return n
+		return checkOrOperator(n, s, o, c, el, tr, ta)
 
 	case *ast.GreaterOrEqualOperatorNode:
 		return n
@@ -955,7 +955,9 @@ func elAppendTypeErrorMismatch(el *errors.ErrorList, n ast.ExprNode,
 //    (1) If the operator only operates on a limited set of data types, check
 //        if all child nodes obey the restriction.
 //    (2) If the operator requires all or some operands to have the same type,
-//        check if corresponding child nodes meet the requirement.
+//        check if corresponding child nodes meet the requirement. If these
+//        operands include both nodes with types and node without types, check
+//        and set types for nodes without types.
 //    (3) Determine the data type of the current node.
 //
 // 4. Fold constants.
@@ -1903,10 +1905,6 @@ func checkAndOperator(n *ast.AndOperatorNode,
 	if !validateBoolType(dtSubject, el, subject, fn, op) {
 		return nil
 	}
-	if !dtObject.Equal(dtSubject) {
-		elAppendTypeErrorMismatch(el, subject, fn, dtObject, dtSubject)
-		return nil
-	}
 	dt := n.GetType()
 
 	var v1 ast.BoolValue
@@ -1947,6 +1945,77 @@ func checkAndOperator(n *ast.AndOperatorNode,
 			return nil
 		}
 	}
+	return r
+}
 
+func checkOrOperator(n *ast.OrOperatorNode,
+	s schema.Schema, o CheckOptions, c *schemaCache, el *errors.ErrorList,
+	tr schema.TableRef, ta typeAction) ast.ExprNode {
+
+	fn := "CheckOrOperator"
+	op := "binary operator OR"
+
+	object := n.GetObject()
+	object = checkExpr(object, s, o, c, el, tr, ta)
+	if object == nil {
+		return nil
+	}
+	subject := n.GetSubject()
+	subject = checkExpr(subject, s, o, c, el, tr, ta)
+	if subject == nil {
+		return nil
+	}
+	n.SetObject(object)
+	n.SetSubject(subject)
+	r := ast.ExprNode(n)
+
+	dtObject := object.GetType()
+	if !validateBoolType(dtObject, el, object, fn, op) {
+		return nil
+	}
+	dtSubject := subject.GetType()
+	if !validateBoolType(dtSubject, el, object, fn, op) {
+		return nil
+	}
+	dt := n.GetType()
+
+	var v1 ast.BoolValue
+	var v2 ast.BoolValue
+	if object, ok := object.(ast.Valuer); ok {
+		if v1, ok = extractBoolValue(object, el, fn, op); !ok {
+			return nil
+		}
+	}
+	if subject, ok := subject.(ast.Valuer); ok {
+		if v2, ok = extractBoolValue(subject, el, fn, op); !ok {
+			return nil
+		}
+	}
+
+	var vo ast.BoolValue
+	switch {
+	case v1.Valid() && v2.Valid():
+		vo = v1.Or(v2)
+	case v1 == ast.BoolValueTrue || v2 == ast.BoolValueTrue:
+		vo = ast.BoolValueTrue
+	}
+	if vo.Valid() {
+		node := &ast.BoolValueNode{}
+		node.SetPosition(n.GetPosition())
+		node.SetLength(n.GetLength())
+		node.SetToken(n.GetToken())
+		node.V = vo
+		r = node
+	}
+
+	switch a := ta.(type) {
+	case typeActionInferDefault:
+	case typeActionInferWithSize:
+	case typeActionAssign:
+		if !dt.Equal(a.dt) {
+			elAppendTypeErrorMismatch(el, n, fn, a.dt, dt)
+			return nil
+		}
+	}
 	return r
 }
