@@ -491,3 +491,53 @@ func newTypeActionAssign(expected ast.DataType) typeActionAssign {
 var _ typeAction = typeActionAssign{}
 
 func (typeActionAssign) ˉtypeAction() {}
+
+//go-sumtype:decl constantValue
+type constantValue interface {
+	ˉconstantValue()
+}
+
+type constantValueBool ast.BoolValue
+
+var _ constantValue = constantValueBool(0)
+
+func (constantValueBool) ˉconstantValue() {}
+
+func newConstantValueBool(b ast.BoolValue) constantValueBool {
+	return constantValueBool(b)
+}
+
+func (b constantValueBool) GetBool() ast.BoolValue {
+	return ast.BoolValue(b)
+}
+
+type constantValueBytes []byte
+
+var _ constantValue = constantValueBytes{}
+
+func (constantValueBytes) ˉconstantValue() {}
+
+func newConstantValueBytes(b []byte) constantValueBytes {
+	if b == nil {
+		return constantValueBytes{}
+	}
+	return constantValueBytes(b)
+}
+
+func (b constantValueBytes) GetBytes() []byte {
+	return []byte(b)
+}
+
+type constantValueDecimal decimal.NullDecimal
+
+var _ constantValue = constantValueDecimal{}
+
+func (constantValueDecimal) ˉconstantValue() {}
+
+func newConstantValueDecimal(d decimal.Decimal) constantValueDecimal {
+	return constantValueDecimal{Decimal: d, Valid: true}
+}
+
+func (d constantValueDecimal) GetDecimal() decimal.NullDecimal {
+	return decimal.NullDecimal(d)
+}
