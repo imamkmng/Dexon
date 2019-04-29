@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 
@@ -921,7 +922,7 @@ func checkExpr(n ast.ExprNode,
 	}
 }
 
-func elAppendTypeErrorMismatch(el *errors.ErrorList, n ast.ExprNode,
+func elAppendTypeErrorAssignDataType(el *errors.ErrorList, n ast.ExprNode,
 	fn string, dtExpected, dtGiven ast.DataType) {
 
 	el.Append(errors.Error{
@@ -1021,7 +1022,7 @@ func checkVariable(n *ast.IdentifierNode,
 	case typeActionInferWithSize:
 	case typeActionAssign:
 		if !dt.Equal(a.dt) {
-			elAppendTypeErrorMismatch(el, n, fn, a.dt, dt)
+			elAppendTypeErrorAssignDataType(el, n, fn, a.dt, dt)
 			return nil
 		}
 	}
@@ -1052,7 +1053,7 @@ func describeValueNodeType(n ast.Valuer) string {
 	}
 }
 
-func elAppendTypeErrorValueNode(el *errors.ErrorList, n ast.Valuer,
+func elAppendTypeErrorAssignValueNode(el *errors.ErrorList, n ast.Valuer,
 	fn string, dt ast.DataType) {
 
 	el.Append(errors.Error{
@@ -1079,7 +1080,7 @@ func checkBoolValue(n *ast.BoolValueNode,
 	case typeActionAssign:
 		major, _ := ast.DecomposeDataType(a.dt)
 		if major != ast.DataTypeMajorBool {
-			elAppendTypeErrorValueNode(el, n, fn, a.dt)
+			elAppendTypeErrorAssignValueNode(el, n, fn, a.dt)
 			return nil
 		}
 	}
@@ -1097,7 +1098,7 @@ func checkAddressValue(n *ast.AddressValueNode,
 	case typeActionAssign:
 		major, _ := ast.DecomposeDataType(a.dt)
 		if major != ast.DataTypeMajorAddress {
-			elAppendTypeErrorValueNode(el, n, fn, a.dt)
+			elAppendTypeErrorAssignValueNode(el, n, fn, a.dt)
 			return nil
 		}
 	}
@@ -1309,7 +1310,7 @@ func checkIntegerValue(n *ast.IntegerValueNode,
 			}
 
 		default:
-			elAppendTypeErrorValueNode(el, n, fn, dt)
+			elAppendTypeErrorAssignValueNode(el, n, fn, dt)
 			return nil
 		}
 	}
@@ -1436,7 +1437,7 @@ func checkDecimalValue(n *ast.DecimalValueNode,
 			return nil
 
 		default:
-			elAppendTypeErrorValueNode(el, n, fn, dt)
+			elAppendTypeErrorAssignValueNode(el, n, fn, dt)
 			return nil
 		}
 	}
@@ -1502,7 +1503,7 @@ executeTypeAction:
 			}
 
 		default:
-			elAppendTypeErrorValueNode(el, n, fn, dt)
+			elAppendTypeErrorAssignValueNode(el, n, fn, dt)
 			return nil
 		}
 	}
@@ -1678,7 +1679,7 @@ func checkPosOperator(n *ast.PosOperatorNode,
 			r = checkExpr(r, s, o, c, el, tr, ta)
 		} else {
 			if !dt.Equal(a.dt) {
-				elAppendTypeErrorMismatch(el, n, fn, a.dt, dt)
+				elAppendTypeErrorAssignDataType(el, n, fn, a.dt, dt)
 				return nil
 			}
 		}
@@ -1776,7 +1777,7 @@ func checkNegOperator(n *ast.NegOperatorNode,
 			r = checkExpr(r, s, o, c, el, tr, ta)
 		} else {
 			if !dt.Equal(a.dt) {
-				elAppendTypeErrorMismatch(el, n, fn, a.dt, dt)
+				elAppendTypeErrorAssignDataType(el, n, fn, a.dt, dt)
 				return nil
 			}
 		}
@@ -1857,7 +1858,7 @@ func checkNotOperator(n *ast.NotOperatorNode,
 	case typeActionInferWithSize:
 	case typeActionAssign:
 		if !dt.Equal(a.dt) {
-			elAppendTypeErrorMismatch(el, n, fn, a.dt, dt)
+			elAppendTypeErrorAssignDataType(el, n, fn, a.dt, dt)
 			return nil
 		}
 	}
@@ -1907,8 +1908,7 @@ func checkAndOperator(n *ast.AndOperatorNode,
 	}
 	dt := n.GetType()
 
-	var v1 ast.BoolValue
-	var v2 ast.BoolValue
+	var v1, v2 ast.BoolValue
 	if object, ok := object.(ast.Valuer); ok {
 		if v1, ok = extractBoolValue(object, el, fn, op); !ok {
 			return nil
@@ -1941,7 +1941,7 @@ func checkAndOperator(n *ast.AndOperatorNode,
 	case typeActionInferWithSize:
 	case typeActionAssign:
 		if !dt.Equal(a.dt) {
-			elAppendTypeErrorMismatch(el, n, fn, a.dt, dt)
+			elAppendTypeErrorAssignDataType(el, n, fn, a.dt, dt)
 			return nil
 		}
 	}
@@ -1956,12 +1956,12 @@ func checkOrOperator(n *ast.OrOperatorNode,
 	op := "binary operator OR"
 
 	object := n.GetObject()
-	object = checkExpr(object, s, o, c, el, tr, ta)
+	object = checkExpr(object, s, o, c, el, tr, nil)
 	if object == nil {
 		return nil
 	}
 	subject := n.GetSubject()
-	subject = checkExpr(subject, s, o, c, el, tr, ta)
+	subject = checkExpr(subject, s, o, c, el, tr, nil)
 	if subject == nil {
 		return nil
 	}
@@ -1979,8 +1979,7 @@ func checkOrOperator(n *ast.OrOperatorNode,
 	}
 	dt := n.GetType()
 
-	var v1 ast.BoolValue
-	var v2 ast.BoolValue
+	var v1, v2 ast.BoolValue
 	if object, ok := object.(ast.Valuer); ok {
 		if v1, ok = extractBoolValue(object, el, fn, op); !ok {
 			return nil
@@ -2013,7 +2012,7 @@ func checkOrOperator(n *ast.OrOperatorNode,
 	case typeActionInferWithSize:
 	case typeActionAssign:
 		if !dt.Equal(a.dt) {
-			elAppendTypeErrorMismatch(el, n, fn, a.dt, dt)
+			elAppendTypeErrorAssignDataType(el, n, fn, a.dt, dt)
 			return nil
 		}
 	}
@@ -2042,6 +2041,41 @@ func validateOrderedType(dt ast.DataType, el *errors.ErrorList, n ast.ExprNode,
 	return true
 }
 
+func elAppendTypeErrorOperandDataType(el *errors.ErrorList, n ast.ExprNode,
+	fn, op string, dtExpected, dtGiven ast.DataType) {
+
+	el.Append(errors.Error{
+		Position: n.GetPosition(),
+		Length:   n.GetLength(),
+		Category: errors.ErrorCategorySemantic,
+		Code:     errors.ErrorCodeTypeError,
+		Severity: errors.ErrorSeverityError,
+		Prefix:   fn,
+		Message: fmt.Sprintf(
+			"cannot use %s (%04x) as an operand of %s because there is "+
+				"already an operand declared as %s (%04x)",
+			dtGiven.String(), uint16(dtGiven), op,
+			dtExpected.String(), uint16(dtExpected)),
+	}, nil)
+}
+
+func elAppendTypeErrorOperandValueNode(el *errors.ErrorList, n ast.Valuer,
+	fn, op string, nExpected ast.Valuer) {
+
+	el.Append(errors.Error{
+		Position: n.GetPosition(),
+		Length:   n.GetLength(),
+		Category: errors.ErrorCategorySemantic,
+		Code:     errors.ErrorCodeTypeError,
+		Severity: errors.ErrorSeverityError,
+		Prefix:   fn,
+		Message: fmt.Sprintf(
+			"cannot use %s as an operand of %s because there is "+
+				"already an operand found to be %s",
+			describeValueNodeType(n), op, describeValueNodeType(nExpected)),
+	}, nil)
+}
+
 func checkGreaterOrEqualOperator(n *ast.GreaterOrEqualOperatorNode,
 	s schema.Schema, o CheckOptions, c *schemaCache, el *errors.ErrorList,
 	tr schema.TableRef, ta typeAction) ast.ExprNode {
@@ -2050,16 +2084,179 @@ func checkGreaterOrEqualOperator(n *ast.GreaterOrEqualOperatorNode,
 	op := "binary operator >="
 
 	object := n.GetObject()
-	object = checkExpr(object, s, o, c, el, tr, ta)
+	object = checkExpr(object, s, o, c, el, tr, nil)
 	if object == nil {
 		return nil
 	}
 	subject := n.GetSubject()
-	subject = checkExpr(subject, s, o, c, el, tr, ta)
+	subject = checkExpr(subject, s, o, c, el, tr, nil)
 	if subject == nil {
 		return nil
 	}
 	n.SetObject(object)
 	n.SetSubject(subject)
 	r := ast.ExprNode(n)
+
+	dtObject := object.GetType()
+	if !validateOrderedType(dtObject, el, object, fn, op) {
+		return nil
+	}
+	dtSubject := subject.GetType()
+	if !validateOrderedType(dtSubject, el, subject, fn, op) {
+		return nil
+	}
+	dt := n.GetType()
+
+	dtObjectDetermined := !dtObject.Pending()
+	dtSubjectDetermined := !dtSubject.Pending()
+	switch {
+	case dtObjectDetermined && dtSubjectDetermined:
+		if !dtObject.Equal(dtSubject) {
+			elAppendTypeErrorOperandDataType(
+				el, subject, fn, op, dtObject, dtSubject)
+			return nil
+		}
+
+	case dtObjectDetermined && !dtSubjectDetermined:
+		assign := newTypeActionAssign(dtObject)
+		subject = checkExpr(subject, s, o, c, el, tr, assign)
+		if subject == nil {
+			return nil
+		}
+		n.SetSubject(subject)
+
+	case !dtObjectDetermined && dtSubjectDetermined:
+		assign := newTypeActionAssign(dtSubject)
+		object = checkExpr(object, s, o, c, el, tr, assign)
+		if object == nil {
+			return nil
+		}
+		n.SetObject(object)
+
+	case !dtObjectDetermined && !dtSubjectDetermined:
+		// We cannot do type checking when both types are unknown.
+
+	default:
+		panic("unreachable")
+	}
+
+	fold := func(object, subject ast.Valuer) bool {
+		var vo ast.BoolValue
+	eval:
+		switch object := object.(type) {
+		case *ast.BoolValueNode:
+			var v1, v2 ast.BoolValue
+			v1 = object.V
+			switch subject := subject.(type) {
+			case *ast.BoolValueNode:
+				v2 = subject.V
+			case *ast.NullValueNode:
+				v2 = ast.BoolValueUnknown
+			default:
+				elAppendTypeErrorOperandValueNode(el, subject, fn, op, object)
+				return false
+			}
+			vo = v1.GreaterOrEqual(v2)
+
+		case *ast.AddressValueNode:
+			var v1, v2 []byte
+			v1 = object.V
+			switch subject := subject.(type) {
+			case *ast.AddressValueNode:
+				v2 = subject.V
+			case *ast.NullValueNode:
+				vo = ast.BoolValueUnknown
+				break eval
+			default:
+				elAppendTypeErrorOperandValueNode(el, subject, fn, op, object)
+				return false
+			}
+			vo = ast.NewBoolValueFromBool(bytes.Compare(v1, v2) >= 0)
+
+		case *ast.IntegerValueNode:
+			var v1, v2 decimal.Decimal
+			v1 = object.V
+			switch subject := subject.(type) {
+			case *ast.IntegerValueNode:
+				v2 = subject.V
+			case *ast.DecimalValueNode:
+				v2 = subject.V
+			case *ast.NullValueNode:
+				vo = ast.BoolValueUnknown
+				break eval
+			default:
+				elAppendTypeErrorOperandValueNode(el, subject, fn, op, object)
+				return false
+			}
+			vo = ast.NewBoolValueFromBool(v1.GreaterThanOrEqual(v2))
+
+		case *ast.DecimalValueNode:
+			var v1, v2 decimal.Decimal
+			v1 = object.V
+			switch subject := subject.(type) {
+			case *ast.IntegerValueNode:
+				v2 = subject.V
+			case *ast.DecimalValueNode:
+				v2 = subject.V
+			case *ast.NullValueNode:
+				vo = ast.BoolValueUnknown
+				break eval
+			default:
+				elAppendTypeErrorOperandValueNode(el, subject, fn, op, object)
+				return false
+			}
+			vo = ast.NewBoolValueFromBool(v1.GreaterThanOrEqual(v2))
+
+		case *ast.BytesValueNode:
+			var v1, v2 []byte
+			v1 = object.V
+			switch subject := subject.(type) {
+			case *ast.BytesValueNode:
+				v2 = subject.V
+			case *ast.NullValueNode:
+				vo = ast.BoolValueUnknown
+				break eval
+			default:
+				elAppendTypeErrorOperandValueNode(el, subject, fn, op, object)
+				return false
+			}
+			vo = ast.NewBoolValueFromBool(bytes.Compare(v1, v2) >= 0)
+
+		case *ast.NullValueNode:
+			switch subject := subject.(type) {
+			case *ast.BoolValueNode:
+				vo = ast.BoolValueUnknown.GreaterOrEqual(subject.V)
+			default:
+				vo = ast.BoolValueUnknown
+			}
+
+		default:
+			panic(unknownValueNodeType(object))
+		}
+		node := &ast.BoolValueNode{}
+		node.SetPosition(n.GetPosition())
+		node.SetLength(n.GetLength())
+		node.SetToken(n.GetToken())
+		node.V = vo
+		r = node
+		return true
+	}
+	if object, ok := object.(ast.Valuer); ok {
+		if subject, ok := subject.(ast.Valuer); ok {
+			if !fold(object, subject) {
+				return nil
+			}
+		}
+	}
+
+	switch a := ta.(type) {
+	case typeActionInferDefault:
+	case typeActionInferWithSize:
+	case typeActionAssign:
+		if !dt.Equal(a.dt) {
+			elAppendTypeErrorAssignDataType(el, n, fn, a.dt, dt)
+			return nil
+		}
+	}
+	return r
 }

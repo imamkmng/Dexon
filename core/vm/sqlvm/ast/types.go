@@ -63,6 +63,20 @@ const (
 	DataTypeBad     DataType = math.MaxUint16
 )
 
+func NewBoolValueFromBool(b bool) BoolValue {
+	if b {
+		return BoolValueTrue
+	}
+	return BoolValueFalse
+}
+
+func NewBoolValueFromNullBool(b sql.NullBool) BoolValue {
+	if b.Valid {
+		return NewBoolValueFromBool(b.Bool)
+	}
+	return BoolValueUnknown
+}
+
 // Valid returns whether a BoolValue is valid.
 func (v BoolValue) Valid() bool {
 	return v-1 < 3
