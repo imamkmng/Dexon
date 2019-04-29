@@ -147,6 +147,144 @@ func (v BoolValue) Not() BoolValue {
 	return boolValueNotTruthTable[v-1]
 }
 
+var boolValueEqualTruthTable = [3][3]BoolValue{
+	BoolValueTrue - 1: {
+		BoolValueTrue - 1:    BoolValueTrue,
+		BoolValueFalse - 1:   BoolValueFalse,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+	BoolValueFalse - 1: {
+		BoolValueTrue - 1:    BoolValueFalse,
+		BoolValueFalse - 1:   BoolValueTrue,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+	BoolValueUnknown - 1: {
+		BoolValueTrue - 1:    BoolValueUnknown,
+		BoolValueFalse - 1:   BoolValueUnknown,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+}
+
+// Equal returns v = v2.
+func (v BoolValue) Equal(v2 BoolValue) BoolValue {
+	return boolValueEqualTruthTable[v-1][v2-1]
+}
+
+var boolValueNotEqualTruthTable = [3][3]BoolValue{
+	BoolValueTrue - 1: {
+		BoolValueTrue - 1:    BoolValueFalse,
+		BoolValueFalse - 1:   BoolValueTrue,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+	BoolValueFalse - 1: {
+		BoolValueTrue - 1:    BoolValueTrue,
+		BoolValueFalse - 1:   BoolValueFalse,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+	BoolValueUnknown - 1: {
+		BoolValueTrue - 1:    BoolValueUnknown,
+		BoolValueFalse - 1:   BoolValueUnknown,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+}
+
+// NotEqual returns v ≠ v2.
+func (v BoolValue) NotEqual(v2 BoolValue) BoolValue {
+	return boolValueNotEqualTruthTable[v-1][v2-1]
+}
+
+var boolValueGreaterTruthTable = [3][3]BoolValue{
+	BoolValueTrue - 1: {
+		BoolValueTrue - 1:    BoolValueFalse,
+		BoolValueFalse - 1:   BoolValueTrue,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+	BoolValueFalse - 1: {
+		BoolValueTrue - 1:    BoolValueFalse,
+		BoolValueFalse - 1:   BoolValueFalse,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+	BoolValueUnknown - 1: {
+		BoolValueTrue - 1:    BoolValueUnknown,
+		BoolValueFalse - 1:   BoolValueUnknown,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+}
+
+// Greater returns v > v2.
+func (v BoolValue) Greater(v2 BoolValue) BoolValue {
+	return boolValueGreaterTruthTable[v-1][v2-1]
+}
+
+var boolValueGreaterOrEqualTruthTable = [3][3]BoolValue{
+	BoolValueTrue - 1: {
+		BoolValueTrue - 1:    BoolValueTrue,
+		BoolValueFalse - 1:   BoolValueTrue,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+	BoolValueFalse - 1: {
+		BoolValueTrue - 1:    BoolValueFalse,
+		BoolValueFalse - 1:   BoolValueTrue,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+	BoolValueUnknown - 1: {
+		BoolValueTrue - 1:    BoolValueUnknown,
+		BoolValueFalse - 1:   BoolValueUnknown,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+}
+
+// GreaterOrEqual returns v ≥ v2.
+func (v BoolValue) GreaterOrEqual(v2 BoolValue) BoolValue {
+	return boolValueGreaterOrEqualTruthTable[v-1][v2-1]
+}
+
+var boolValueLessTruthTable = [3][3]BoolValue{
+	BoolValueTrue - 1: {
+		BoolValueTrue - 1:    BoolValueFalse,
+		BoolValueFalse - 1:   BoolValueFalse,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+	BoolValueFalse - 1: {
+		BoolValueTrue - 1:    BoolValueTrue,
+		BoolValueFalse - 1:   BoolValueFalse,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+	BoolValueUnknown - 1: {
+		BoolValueTrue - 1:    BoolValueUnknown,
+		BoolValueFalse - 1:   BoolValueUnknown,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+}
+
+// Less returns v < v2.
+func (v BoolValue) Less(v2 BoolValue) BoolValue {
+	return boolValueLessTruthTable[v-1][v2-1]
+}
+
+var boolValueLessOrEqualTruthTable = [3][3]BoolValue{
+	BoolValueTrue - 1: {
+		BoolValueTrue - 1:    BoolValueTrue,
+		BoolValueFalse - 1:   BoolValueFalse,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+	BoolValueFalse - 1: {
+		BoolValueTrue - 1:    BoolValueTrue,
+		BoolValueFalse - 1:   BoolValueTrue,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+	BoolValueUnknown - 1: {
+		BoolValueTrue - 1:    BoolValueUnknown,
+		BoolValueFalse - 1:   BoolValueUnknown,
+		BoolValueUnknown - 1: BoolValueUnknown,
+	},
+}
+
+// LessOrEqual returns v ≤ v2.
+func (v BoolValue) LessOrEqual(v2 BoolValue) BoolValue {
+	return boolValueLessOrEqualTruthTable[v-1][v2-1]
+}
+
 // DecomposeDataType to major and minor part with given data type.
 func DecomposeDataType(t DataType) (DataTypeMajor, DataTypeMinor) {
 	return DataTypeMajor(t >> 8), DataTypeMinor(t & 0xff)

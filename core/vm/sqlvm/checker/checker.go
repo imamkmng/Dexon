@@ -866,7 +866,7 @@ func checkExpr(n ast.ExprNode,
 		return checkOrOperator(n, s, o, c, el, tr, ta)
 
 	case *ast.GreaterOrEqualOperatorNode:
-		return n
+		return checkGreaterOrEqualOperator(n, s, o, c, el, tr, ta)
 
 	case *ast.LessOrEqualOperatorNode:
 		return n
@@ -2018,4 +2018,48 @@ func checkOrOperator(n *ast.OrOperatorNode,
 		}
 	}
 	return r
+}
+
+func validateOrderedType(dt ast.DataType, el *errors.ErrorList, n ast.ExprNode,
+	fn, op string) bool {
+
+	if !dt.Pending() {
+		major, _ := ast.DecomposeDataType(dt)
+		switch {
+		case major == ast.DataTypeMajorBool,
+			major == ast.DataTypeMajorAddress,
+			major == ast.DataTypeMajorInt,
+			major == ast.DataTypeMajorUint,
+			major == ast.DataTypeMajorFixedBytes,
+			major == ast.DataTypeMajorDynamicBytes,
+			major.IsFixedRange(),
+			major.IsFixedRange():
+		default:
+			elAppendTypeErrorOperatorDataType(el, n, fn, op, dt)
+			return false
+		}
+	}
+	return true
+}
+
+func checkGreaterOrEqualOperator(n *ast.GreaterOrEqualOperatorNode,
+	s schema.Schema, o CheckOptions, c *schemaCache, el *errors.ErrorList,
+	tr schema.TableRef, ta typeAction) ast.ExprNode {
+
+	fn := "CheckGreaterOrEqualOperator"
+	op := "binary operator >="
+
+	object := n.GetObject()
+	object = checkExpr(object, s, o, c, el, tr, ta)
+	if object == nil {
+		return nil
+	}
+	subject := n.GetSubject()
+	subject = checkExpr(subject, s, o, c, el, tr, ta)
+	if subject == nil {
+		return nil
+	}
+	n.SetObject(object)
+	n.SetSubject(subject)
+	r := ast.ExprNode(n)
 }

@@ -242,7 +242,7 @@ func (s *TypesTestSuite) TestBoolValueValidity() {
 	s.Require().Panics(func() { _ = v.NullBool() })
 }
 
-func (s *TypesTestSuite) TestBoolValueOperations() {
+func (s *TypesTestSuite) TestBoolValueBooleanOperations() {
 	and := func(v, v2 BoolValue) BoolValue {
 		if v == BoolValueFalse || v2 == BoolValueFalse {
 			return BoolValueFalse
@@ -272,8 +272,7 @@ func (s *TypesTestSuite) TestBoolValueOperations() {
 		case BoolValueUnknown:
 			return BoolValueUnknown
 		}
-		// v is invalid.
-		return v
+		panic("unreachable")
 	}
 	values := [3]BoolValue{BoolValueTrue, BoolValueFalse, BoolValueUnknown}
 	for _, v := range values {
@@ -297,6 +296,119 @@ func (s *TypesTestSuite) TestBoolValueOperations() {
 		actual := v.Not()
 		s.Require().Equalf(expected, actual,
 			"NOT %v = %v, but %v is returned", v, expected, actual)
+	}
+}
+
+func (s *TypesTestSuite) TestBoolValueEqualityOperations() {
+	equal := func(v, v2 BoolValue) BoolValue {
+		if v == BoolValueUnknown || v2 == BoolValueUnknown {
+			return BoolValueUnknown
+		}
+		if v == v2 {
+			return BoolValueTrue
+		}
+		return BoolValueFalse
+	}
+	notEqual := func(v, v2 BoolValue) BoolValue {
+		if v == BoolValueUnknown || v2 == BoolValueUnknown {
+			return BoolValueUnknown
+		}
+		if v == v2 {
+			return BoolValueFalse
+		}
+		return BoolValueTrue
+	}
+	values := [3]BoolValue{BoolValueTrue, BoolValueFalse, BoolValueUnknown}
+	for _, v := range values {
+		for _, v2 := range values {
+			expected := equal(v, v2)
+			actual := v.Equal(v2)
+			s.Require().Equal(expected, actual,
+				"%v = %v = %v, but %v is returned", v, v2, expected, actual)
+		}
+	}
+	for _, v := range values {
+		for _, v2 := range values {
+			expected := notEqual(v, v2)
+			actual := v.NotEqual(v2)
+			s.Require().Equal(expected, actual,
+				"%v ≠ %v = %v, but %v is returned", v, v2, expected, actual)
+		}
+	}
+}
+
+func (s *TypesTestSuite) TestBoolValueOrderingOperations() {
+	boolValueToInt := func(v BoolValue) int {
+		return [2]int{
+			BoolValueTrue - 1:  1,
+			BoolValueFalse - 1: 0,
+		}[v-1]
+	}
+	boolToBoolValue := func(v bool) BoolValue {
+		switch v {
+		case true:
+			return BoolValueTrue
+		case false:
+			return BoolValueFalse
+		}
+		panic("unreachable")
+	}
+	greater := func(v, v2 BoolValue) BoolValue {
+		if v == BoolValueUnknown || v2 == BoolValueUnknown {
+			return BoolValueUnknown
+		}
+		return boolToBoolValue(boolValueToInt(v) > boolValueToInt(v2))
+	}
+	greaterOrEqual := func(v, v2 BoolValue) BoolValue {
+		if v == BoolValueUnknown || v2 == BoolValueUnknown {
+			return BoolValueUnknown
+		}
+		return boolToBoolValue(boolValueToInt(v) >= boolValueToInt(v2))
+	}
+	less := func(v, v2 BoolValue) BoolValue {
+		if v == BoolValueUnknown || v2 == BoolValueUnknown {
+			return BoolValueUnknown
+		}
+		return boolToBoolValue(boolValueToInt(v) < boolValueToInt(v2))
+	}
+	lessOrEqual := func(v, v2 BoolValue) BoolValue {
+		if v == BoolValueUnknown || v2 == BoolValueUnknown {
+			return BoolValueUnknown
+		}
+		return boolToBoolValue(boolValueToInt(v) <= boolValueToInt(v2))
+	}
+	values := [3]BoolValue{BoolValueTrue, BoolValueFalse, BoolValueUnknown}
+	for _, v := range values {
+		for _, v2 := range values {
+			expected := greater(v, v2)
+			actual := v.Greater(v2)
+			s.Require().Equal(expected, actual,
+				"%v > %v = %v, but %v is returned", v, v2, expected, actual)
+		}
+	}
+	for _, v := range values {
+		for _, v2 := range values {
+			expected := greaterOrEqual(v, v2)
+			actual := v.GreaterOrEqual(v2)
+			s.Require().Equal(expected, actual,
+				"%v ≥ %v = %v, but %v is returned", v, v2, expected, actual)
+		}
+	}
+	for _, v := range values {
+		for _, v2 := range values {
+			expected := less(v, v2)
+			actual := v.Less(v2)
+			s.Require().Equal(expected, actual,
+				"%v < %v < %v, but %v is returned", v, v2, expected, actual)
+		}
+	}
+	for _, v := range values {
+		for _, v2 := range values {
+			expected := lessOrEqual(v, v2)
+			actual := v.LessOrEqual(v2)
+			s.Require().Equal(expected, actual,
+				"%v ≤ %v = %v, but %v is returned", v, v2, expected, actual)
+		}
 	}
 }
 
