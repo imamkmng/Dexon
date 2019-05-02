@@ -304,6 +304,11 @@ func checkCreateTableStmt(n *ast.CreateTableStmtNode, s *schema.Schema,
 					}
 					column.Attr |= schema.ColumnAttrHasDefault
 
+					// We should not do type checking on an invalid type.
+					if !column.Type.Valid() {
+						break cs
+					}
+
 					value := cs.Value
 					value = checkExpr(cs.Value, *s, o|CheckWithConstantOnly,
 						c, el, 0, newTypeActionAssign(column.Type))

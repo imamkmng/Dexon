@@ -15,7 +15,7 @@ import (
 //   td -> table descriptor
 //   tr -> table reference
 //   ti -> table index
-//   tn -< table name
+//   tn -> table name
 //
 //   cd -> column descriptor
 //   cr -> column reference

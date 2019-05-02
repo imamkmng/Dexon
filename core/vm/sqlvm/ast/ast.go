@@ -79,7 +79,11 @@ func safeIdentifierExtend(r rune) bool {
 
 func safeString(s []byte, quote byte, mustQuote bool) []byte {
 	o := bytes.Buffer{}
-	o.Grow(len(s) + 1)
+	if mustQuote {
+		o.Grow(len(s) + 2)
+	} else {
+		o.Grow(len(s) + 1)
+	}
 	o.WriteByte(quote)
 
 	if len(s) > 0 {
@@ -316,7 +320,7 @@ func (n *AddressValueNode) IsConstant() bool {
 	return true
 }
 
-// GetType returns the type of 'bool'.
+// GetType returns the type of 'address'.
 func (n *AddressValueNode) GetType() DataType {
 	return ComposeDataType(DataTypeMajorAddress, DataTypeMinorDontCare)
 }
