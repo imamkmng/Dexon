@@ -1886,7 +1886,12 @@ func opFunc(ctx *common.Context, in Instruction) (err error) {
 		return
 	}
 
-	result, err = fnTable[id](ctx, in.Input[2:], length)
+	fUnit := fnTable[id]
+
+	in.Input = in.Input[2:]
+	in.GasFunc = fUnit.GasFunc
+
+	result, err = fUnit.Fn(ctx, in, length)
 	if err != nil {
 		return
 	}

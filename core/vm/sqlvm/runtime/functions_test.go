@@ -67,7 +67,7 @@ func (s *FunctionSuite) TestFnBlockHash() {
 					BlockNumber: c.Cur,
 				},
 			},
-			c.Ops,
+			Instruction{Input: c.Ops},
 			c.Length,
 		)
 	}
@@ -117,7 +117,7 @@ func (s *FunctionSuite) TestFnBlockNumber() {
 			&common.Context{
 				Context: vm.Context{BlockNumber: c.RawNum},
 			},
-			nil,
+			Instruction{},
 			c.Length)
 	}
 
@@ -173,7 +173,7 @@ func (s *FunctionSuite) TestFnBlockTimestamp() {
 			&common.Context{
 				Context: vm.Context{Time: c.Timestamp},
 			},
-			nil,
+			Instruction{},
 			c.Length)
 	}
 
@@ -233,7 +233,7 @@ func (s *FunctionSuite) TestFnCoinBase() {
 			&common.Context{
 				Context: vm.Context{Coinbase: c.Address},
 			},
-			nil,
+			Instruction{},
 			c.Length)
 	}
 
@@ -279,7 +279,7 @@ func (s *FunctionSuite) TestFnGasLimit() {
 			&common.Context{
 				Context: vm.Context{GasLimit: c.Limit},
 			},
-			nil,
+			Instruction{},
 			c.Length)
 	}
 
@@ -332,7 +332,7 @@ func (s *FunctionSuite) TestFnMsgSender() {
 			&common.Context{
 				Contract: &vm.Contract{CallerAddress: c.Address},
 			},
-			nil,
+			Instruction{},
 			c.Length)
 	}
 
@@ -383,7 +383,7 @@ func (s *FunctionSuite) TestFnMsgData() {
 			&common.Context{
 				Contract: &vm.Contract{Input: c.Res},
 			},
-			nil,
+			Instruction{},
 			c.Length)
 	}
 
@@ -436,7 +436,7 @@ func (s *FunctionSuite) TestFnTxOrigin() {
 			&common.Context{
 				Context: vm.Context{Origin: c.Address},
 			},
-			nil,
+			Instruction{},
 			c.Length)
 	}
 
@@ -488,7 +488,7 @@ func (s *FunctionSuite) TestFnRand() {
 				Context: vm.Context{Origin: c.Origin, Randomness: res},
 				Storage: newStorage(),
 			},
-			nil,
+			Instruction{},
 			c.Length)
 	}
 

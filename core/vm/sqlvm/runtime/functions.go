@@ -34,26 +34,79 @@ const (
 	SUBSTRING
 )
 
-type fn func(*common.Context, []*Operand, uint64) (*Operand, error)
+type fn func(*common.Context, Instruction, uint64) (*Operand, error)
+
+type fnUnit struct {
+	Fn      fn
+	GasFunc GasFunction
+}
 
 var (
-	fnTable = []fn{
-		BLOCKHASH:      fnBlockHash,
-		BLOCKNUMBER:    fnBlockNumber,
-		BLOCKTIMESTAMP: fnBlockTimestamp,
-		NOW:            fnBlockTimestamp,
-		BLOCKCOINBASE:  fnBlockCoinBase,
-		BLOCKGASLIMIT:  fnBlockGasLimit,
-		MSGSENDER:      fnMsgSender,
-		MSGDATA:        fnMsgData,
-		TXORIGIN:       fnTxOrigin,
-		RAND:           fnRand,
-		BITAND:         fnBitAnd,
-		BITOR:          fnBitOr,
-		BITXOR:         fnBitXor,
-		BITNOT:         fnBitNot,
-		OCTETLENGTH:    fnOctetLength,
-		SUBSTRING:      fnSubString,
+	fnTable = []fnUnit{
+		BLOCKHASH: {
+			Fn:      fnBlockHash,
+			GasFunc: constGasFunc(GasMemAlloc),
+		},
+		BLOCKNUMBER: {
+			Fn:      fnBlockNumber,
+			GasFunc: constGasFunc(GasMemAlloc),
+		},
+		BLOCKTIMESTAMP: {
+			Fn:      fnBlockTimestamp,
+			GasFunc: constGasFunc(GasMemAlloc),
+		},
+		NOW: {
+			Fn:      fnBlockTimestamp,
+			GasFunc: constGasFunc(GasMemAlloc),
+		},
+		BLOCKCOINBASE: {
+			Fn:      fnBlockCoinBase,
+			GasFunc: constGasFunc(GasMemAlloc),
+		},
+		BLOCKGASLIMIT: {
+			Fn:      fnBlockGasLimit,
+			GasFunc: constGasFunc(GasMemAlloc),
+		},
+		MSGSENDER: {
+			Fn:      fnMsgSender,
+			GasFunc: constGasFunc(GasMemAlloc),
+		},
+		MSGDATA: {
+			Fn:      fnMsgData,
+			GasFunc: constGasFunc(GasMemAlloc),
+		},
+		TXORIGIN: {
+			Fn:      fnTxOrigin,
+			GasFunc: constGasFunc(GasMemAlloc),
+		},
+		RAND: {
+			Fn:      fnRand,
+			GasFunc: constGasFunc(GasMemAlloc),
+		},
+		BITAND: {
+			Fn:      fnBitAnd,
+			GasFunc: constGasFunc(GasBitCmp),
+		},
+		BITOR: {
+			Fn:      fnBitOr,
+			GasFunc: constGasFunc(GasBitCmp),
+		},
+		BITXOR: {
+			Fn:      fnBitXor,
+			GasFunc: constGasFunc(GasBitCmp),
+		},
+		BITNOT: {
+			Fn:      fnBitNot,
+			GasFunc: constGasFunc(GasBitCmp),
+		},
+		OCTETLENGTH: {
+			Fn:      fnOctetLength,
+			GasFunc: constGasFunc(GasMemAlloc),
+		},
+		SUBSTRING: {
+			Fn:      fnSubString,
+			GasFunc: constGasFunc(GasMemFree),
+		},
 	}
 )
 
@@ -80,8 +133,8 @@ func evalBlockHash(ctx *common.Context, num, cur decimal.Decimal) (r *Raw, err e
 	return
 }
 
-func fnBlockHash(ctx *common.Context, ops []*Operand, length uint64) (result *Operand, err error) {
-	if len(ops) != 1 {
+func fnBlockHash(ctx *common.Context, in Instruction, length uint64) (result *Operand, err error) {
+	if len(in.Input) != 1 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
@@ -89,9 +142,9 @@ func fnBlockHash(ctx *common.Context, ops []*Operand, length uint64) (result *Op
 	meta := []ast.DataType{ast.ComposeDataType(ast.DataTypeMajorFixedBytes, 3)}
 	cNum := decimal.NewFromBigInt(ctx.BlockNumber, 0)
 
-	if ops[0].IsImmediate {
+	if in.Input[0].IsImmediate {
 		var r *Raw
-		r, err = evalBlockHash(ctx, ops[0].Data[0][0].Value, cNum)
+		r, err = evalBlockHash(ctx, in.Input[0].Data[0][0].Value, cNum)
 		if err != nil {
 			return
 		}
@@ -100,7 +153,7 @@ func fnBlockHash(ctx *common.Context, ops []*Operand, length uint64) (result *Op
 		result = &Operand{Meta: meta, Data: make([]Tuple, length)}
 		for i := uint64(0); i < length; i++ {
 			var r *Raw
-			r, err = evalBlockHash(ctx, ops[0].Data[i][0].Value, cNum)
+			r, err = evalBlockHash(ctx, in.Input[0].Data[i][0].Value, cNum)
 			if err != nil {
 				return
 			}
@@ -110,7 +163,7 @@ func fnBlockHash(ctx *common.Context, ops []*Operand, length uint64) (result *Op
 	return
 }
 
-func fnBlockNumber(ctx *common.Context, ops []*Operand, length uint64) (result *Operand, err error) {
+func fnBlockNumber(ctx *common.Context, in Instruction, length uint64) (result *Operand, err error) {
 	r := &Raw{Value: decimal.NewFromBigInt(ctx.BlockNumber, 0)}
 	result = assignFuncResult(
 		[]ast.DataType{ast.ComposeDataType(ast.DataTypeMajorUint, 31)},
@@ -119,7 +172,7 @@ func fnBlockNumber(ctx *common.Context, ops []*Operand, length uint64) (result *
 	return
 }
 
-func fnBlockTimestamp(ctx *common.Context, ops []*Operand, length uint64) (result *Operand, err error) {
+func fnBlockTimestamp(ctx *common.Context, in Instruction, length uint64) (result *Operand, err error) {
 	r := &Raw{Value: decimal.NewFromBigInt(ctx.Time, 0)}
 	result = assignFuncResult(
 		[]ast.DataType{ast.ComposeDataType(ast.DataTypeMajorUint, 31)},
@@ -128,7 +181,7 @@ func fnBlockTimestamp(ctx *common.Context, ops []*Operand, length uint64) (resul
 	return
 }
 
-func fnBlockCoinBase(ctx *common.Context, ops []*Operand, length uint64) (result *Operand, err error) {
+func fnBlockCoinBase(ctx *common.Context, in Instruction, length uint64) (result *Operand, err error) {
 	r := &Raw{Bytes: ctx.Coinbase.Bytes()}
 	result = assignFuncResult(
 		[]ast.DataType{ast.ComposeDataType(ast.DataTypeMajorAddress, 0)},
@@ -137,7 +190,7 @@ func fnBlockCoinBase(ctx *common.Context, ops []*Operand, length uint64) (result
 	return
 }
 
-func fnBlockGasLimit(ctx *common.Context, ops []*Operand, length uint64) (result *Operand, err error) {
+func fnBlockGasLimit(ctx *common.Context, in Instruction, length uint64) (result *Operand, err error) {
 	r := &Raw{}
 	if ctx.GasLimit > uint64(math.MaxInt64) {
 		r.Value, err = decimal.NewFromString(fmt.Sprint(ctx.GasLimit))
@@ -154,7 +207,7 @@ func fnBlockGasLimit(ctx *common.Context, ops []*Operand, length uint64) (result
 	return
 }
 
-func fnMsgSender(ctx *common.Context, ops []*Operand, length uint64) (result *Operand, err error) {
+func fnMsgSender(ctx *common.Context, in Instruction, length uint64) (result *Operand, err error) {
 	r := &Raw{Bytes: ctx.Contract.CallerAddress.Bytes()}
 	result = assignFuncResult(
 		[]ast.DataType{ast.ComposeDataType(ast.DataTypeMajorAddress, 0)},
@@ -163,7 +216,7 @@ func fnMsgSender(ctx *common.Context, ops []*Operand, length uint64) (result *Op
 	return
 }
 
-func fnMsgData(ctx *common.Context, ops []*Operand, length uint64) (result *Operand, err error) {
+func fnMsgData(ctx *common.Context, in Instruction, length uint64) (result *Operand, err error) {
 	r := &Raw{Bytes: ctx.Contract.Input}
 	result = assignFuncResult(
 		[]ast.DataType{ast.ComposeDataType(ast.DataTypeMajorDynamicBytes, 0)},
@@ -172,7 +225,7 @@ func fnMsgData(ctx *common.Context, ops []*Operand, length uint64) (result *Oper
 	return
 }
 
-func fnTxOrigin(ctx *common.Context, ops []*Operand, length uint64) (result *Operand, err error) {
+func fnTxOrigin(ctx *common.Context, in Instruction, length uint64) (result *Operand, err error) {
 	r := &Raw{Bytes: ctx.Origin.Bytes()}
 	result = assignFuncResult(
 		[]ast.DataType{ast.ComposeDataType(ast.DataTypeMajorAddress, 0)},
@@ -181,7 +234,7 @@ func fnTxOrigin(ctx *common.Context, ops []*Operand, length uint64) (result *Ope
 	return
 }
 
-func fnRand(ctx *common.Context, ops []*Operand, length uint64) (result *Operand, err error) {
+func fnRand(ctx *common.Context, in Instruction, length uint64) (result *Operand, err error) {
 	binaryOriginNonce := make([]byte, binary.MaxVarintLen64)
 	binary.PutUvarint(binaryOriginNonce, ctx.Storage.GetNonce(ctx.Origin))
 
@@ -283,8 +336,8 @@ func (r *Raw) fromBytes(bytes []byte, dType ast.DataType) {
 
 type bitBinFunc func(b1, b2 byte) byte
 
-func fnBitAnd(ctx *common.Context, ops []*Operand, length uint64) (result *Operand, err error) {
-	n, op1, op2, err := extractOps(ops)
+func fnBitAnd(ctx *common.Context, in Instruction, length uint64) (result *Operand, err error) {
+	n, op1, op2, err := extractOps(in.Input)
 	if err != nil {
 		return
 	}
@@ -327,8 +380,8 @@ func (r *Raw) bitBinOp(r2 *Raw, dType ast.DataType, bFn bitBinFunc) (r3 *Raw) {
 	return
 }
 
-func fnBitOr(ctx *common.Context, ops []*Operand, length uint64) (result *Operand, err error) {
-	n, op1, op2, err := extractOps(ops)
+func fnBitOr(ctx *common.Context, in Instruction, length uint64) (result *Operand, err error) {
+	n, op1, op2, err := extractOps(in.Input)
 	if err != nil {
 		return
 	}
@@ -345,8 +398,8 @@ func fnBitOr(ctx *common.Context, ops []*Operand, length uint64) (result *Operan
 	return
 }
 
-func fnBitXor(ctx *common.Context, ops []*Operand, length uint64) (result *Operand, err error) {
-	n, op1, op2, err := extractOps(ops)
+func fnBitXor(ctx *common.Context, in Instruction, length uint64) (result *Operand, err error) {
+	n, op1, op2, err := extractOps(in.Input)
 	if err != nil {
 		return
 	}
@@ -365,13 +418,13 @@ func fnBitXor(ctx *common.Context, ops []*Operand, length uint64) (result *Opera
 
 type bitUnFunc func(b byte) byte
 
-func fnBitNot(ctx *common.Context, ops []*Operand, length uint64) (result *Operand, err error) {
-	if len(ops) < 1 {
+func fnBitNot(ctx *common.Context, in Instruction, length uint64) (result *Operand, err error) {
+	if len(in.Input) < 1 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
 
-	op := ops[0]
+	op := in.Input[0]
 	if !metaAllBitOp(op) {
 		err = se.ErrorCodeInvalidDataType
 		return
@@ -410,13 +463,13 @@ func (r *Raw) bitUnOp(dType ast.DataType, bFn bitUnFunc) (r2 *Raw) {
 	return
 }
 
-func fnOctetLength(ctx *common.Context, ops []*Operand, length uint64) (result *Operand, err error) {
-	if len(ops) < 1 {
+func fnOctetLength(ctx *common.Context, in Instruction, length uint64) (result *Operand, err error) {
+	if len(in.Input) < 1 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
 
-	op := ops[0]
+	op := in.Input[0]
 
 	if !metaAllDynBytes(op) {
 		err = se.ErrorCodeInvalidDataType
@@ -442,19 +495,19 @@ func fnOctetLength(ctx *common.Context, ops []*Operand, length uint64) (result *
 	return
 }
 
-func fnSubString(ctx *common.Context, ops []*Operand, length uint64) (result *Operand, err error) {
-	if len(ops) < 3 {
+func fnSubString(ctx *common.Context, in Instruction, length uint64) (result *Operand, err error) {
+	if len(in.Input) < 3 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
 
-	if len(ops[0].Data) != len(ops[1].Data) ||
-		len(ops[0].Data) != len(ops[2].Data) {
+	if len(in.Input[0].Data) != len(in.Input[1].Data) ||
+		len(in.Input[0].Data) != len(in.Input[2].Data) {
 		err = se.ErrorCodeIndexOutOfRange
 		return
 	}
 
-	op := ops[0]
+	op := in.Input[0]
 
 	if !metaAllDynBytes(op) {
 		err = se.ErrorCodeInvalidDataType
@@ -470,7 +523,7 @@ func fnSubString(ctx *common.Context, ops []*Operand, length uint64) (result *Op
 		result.Meta[i] = dynBytesType
 	}
 
-	starts, ends := ops[1], ops[2]
+	starts, ends := in.Input[1], in.Input[2]
 
 	var start, end uint64
 	for i := 0; i < len(op.Data); i++ {
