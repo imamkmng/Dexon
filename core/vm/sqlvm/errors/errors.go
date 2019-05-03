@@ -123,6 +123,7 @@ const (
 	ErrorCodeMultipleEscapeByte
 	ErrorCodePendingEscapeByte
 	ErrorCodeNoSuchFunction
+	ErrorCodeOutOfGas
 )
 
 var errorCodeMap = [...]string{
@@ -157,6 +158,7 @@ var errorCodeMap = [...]string{
 	ErrorCodeMultipleEscapeByte: "multiple escape byte",
 	ErrorCodePendingEscapeByte:  "pending escape byte",
 	ErrorCodeNoSuchFunction:     "no such function",
+	ErrorCodeOutOfGas:           "out of gas",
 }
 
 func (c ErrorCode) Error() string {

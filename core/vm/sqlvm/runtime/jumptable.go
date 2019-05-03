@@ -1,39 +1,128 @@
 package runtime
 
-var jumpTable = [256]OpFunction{
+type jumpUnit struct {
+	Func    OpFunction
+	GasFunc GasFunction
+}
+
+var jumpTable = [256]jumpUnit{
 	// 0x10
-	ADD:    opAdd,
-	MUL:    opMul,
-	SUB:    opSub,
-	DIV:    opDiv,
-	MOD:    opMod,
-	CONCAT: opConcat,
-	NEG:    opNeg,
+	ADD: {
+		Func:    opAdd,
+		GasFunc: constGasFunc(GasArithAdd),
+	},
+	MUL: {
+		Func:    opMul,
+		GasFunc: constGasFunc(GasArithMul),
+	},
+	SUB: {
+		Func:    opSub,
+		GasFunc: constGasFunc(GasArithAdd),
+	},
+	DIV: {
+		Func:    opDiv,
+		GasFunc: constGasFunc(GasArithMul),
+	},
+	MOD: {
+		Func:    opMod,
+		GasFunc: constGasFunc(GasArithMul),
+	},
+	CONCAT: {
+		Func:    opConcat,
+		GasFunc: constGasFunc(GasMemAlloc),
+	},
+	NEG: {
+		Func:    opNeg,
+		GasFunc: constGasFunc(GasArithAdd),
+	},
 
 	// 0x20
-	LT:    opLt,
-	GT:    opGt,
-	EQ:    opEq,
-	AND:   opAnd,
-	OR:    opOr,
-	NOT:   opNot,
-	UNION: opUnion,
-	INTXN: opIntxn,
-	LIKE:  opLike,
+	LT: {
+		Func:    opLt,
+		GasFunc: constGasFunc(GasArithCmp),
+	},
+	GT: {
+		Func:    opGt,
+		GasFunc: constGasFunc(GasArithCmp),
+	},
+	EQ: {
+		Func:    opEq,
+		GasFunc: constGasFunc(GasArithCmp),
+	},
+	AND: {
+		Func:    opAnd,
+		GasFunc: constGasFunc(GasBoolCmp),
+	},
+	OR: {
+		Func:    opOr,
+		GasFunc: constGasFunc(GasBoolCmp),
+	},
+	NOT: {
+		Func:    opNot,
+		GasFunc: constGasFunc(GasBoolCmp),
+	},
+	UNION: {
+		Func:    opUnion,
+		GasFunc: constGasFunc(GasMemAlloc + GasMemSwap),
+	},
+	INTXN: {
+		Func:    opIntxn,
+		GasFunc: constGasFunc(GasMemAlloc + GasMemSwap),
+	},
+	LIKE: {
+		Func:    opLike,
+		GasFunc: constGasFunc(GasMemSearch),
+	},
+
+	// 0x30
+	REPEATPK: {
+		Func:    opRepeatPK,
+		GasFunc: constGasFunc(GasStorageRead),
+	},
 
 	// 0x40
-	ZIP:    opZip,
-	FIELD:  opField,
-	PRUNE:  opPrune,
-	SORT:   opSort,
-	FILTER: opFilter,
-	CAST:   opCast,
-	CUT:    opCut,
-	RANGE:  opRange,
+	ZIP: {
+		Func:    opZip,
+		GasFunc: constGasFunc(GasMemAlloc),
+	},
+	FIELD: {
+		Func:    opField,
+		GasFunc: constGasFunc(GasMemAlloc),
+	},
+	PRUNE: {
+		Func:    opPrune,
+		GasFunc: constGasFunc(GasMemFree),
+	},
+	SORT: {
+		Func:    opSort,
+		GasFunc: constGasFunc(GasMemSwap),
+	},
+	FILTER: {
+		Func:    opFilter,
+		GasFunc: constGasFunc(GasMemAlloc),
+	},
+	CAST: {
+		Func:    opCast,
+		GasFunc: dummyGasFunc,
+	},
+	CUT: {
+		Func:    opCut,
+		GasFunc: constGasFunc(GasMemFree),
+	},
+	RANGE: {
+		Func:    opRange,
+		GasFunc: constGasFunc(GasMemFree),
+	},
 
 	// 0x50
-	FUNC: opFunc,
+	FUNC: {
+		Func:    opFunc,
+		GasFunc: dummyGasFunc,
+	},
 
 	// 0x60
-	LOAD: opLoad,
+	LOAD: {
+		Func:    opLoad,
+		GasFunc: constGasFunc(GasStorageRead),
+	},
 }

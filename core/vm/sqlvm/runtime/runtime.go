@@ -9,12 +9,18 @@ import (
 // Run is runtime entrypoint.
 func Run(stateDB vm.StateDB, ins []Instruction, registers []*Operand) (ret []byte, err error) {
 	for _, in := range ins {
+		// load register
 		for i := 0; i < len(in.Input); i++ {
 			if !in.Input[i].IsImmediate {
 				in.Input[i] = registers[in.Input[i].RegisterIndex]
 			}
 		}
-		errCode := jumpTable[in.Op](&common.Context{}, in.Input, registers, in.Output)
+		in.Registers = registers
+
+		// jump table and run
+		jUnit := jumpTable[in.Op]
+		in.GasFunc = jUnit.GasFunc
+		errCode := jUnit.Func(&common.Context{}, in)
 		if errCode != nil {
 			err = se.Error{
 				Position: in.Position,

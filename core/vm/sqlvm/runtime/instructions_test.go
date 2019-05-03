@@ -407,7 +407,12 @@ func (s *opLoadSuite) TestOpLoad() {
 		reg := s.newRegisters(t.tableRef, t.ids, t.fields)
 
 		loadRegister(input, reg)
-		err := opLoad(s.ctx, input, reg, t.outputIdx)
+		in := Instruction{
+			Input:     input,
+			Registers: reg,
+			Output:    t.outputIdx,
+		}
+		err := opLoad(s.ctx, in)
 
 		s.Require().Equalf(t.expectedErr, err, "testcase: [%v]", t.title)
 		s.Require().Truef(reflect.DeepEqual(t.expectedOutput, reg[t.outputIdx]),
@@ -474,7 +479,12 @@ func (s opRepeatPKSuite) TestRepeatPK() {
 		reg := s.newRegisters(t.tableRef)
 		input := newInput([]int{1})
 		loadRegister(input, reg)
-		err := opRepeatPK(ctx, input, reg, 0)
+		in := Instruction{
+			Input:     input,
+			Registers: reg,
+			Output:    0,
+		}
+		err := opRepeatPK(ctx, in)
 		s.Require().Equalf(t.expectedErr, err, "testcase: [%v]", t.title)
 		result, _ := reg[0].toUint64()
 		s.Require().Equalf(t.expectedIDs, result, "testcase: [%v]", t.title)
@@ -513,17 +523,19 @@ type instructionSuite struct {
 
 func (s *instructionSuite) run(testcases []opTestcase, opfunc OpFunction) {
 	for idx, c := range testcases {
-		registers := make([]*Operand, len(c.In.Input))
+		c.In.Registers = make([]*Operand, len(c.In.Input))
 
 		for i, j := 0, 0; i < len(c.In.Input); i++ {
 			if !c.In.Input[i].IsImmediate {
-				registers[j] = c.In.Input[i]
+				c.In.Registers[j] = c.In.Input[i]
 				j++
 			}
 		}
+
 		err := opfunc(
 			&common.Context{Opt: common.Option{SafeMath: true}},
-			c.In.Input, registers, c.In.Output)
+			c.In,
+		)
 		s.Require().Equal(
 			c.Err, err,
 			"idx: %v, op: %v, case: %v\nerror not equal: %v != %v",
@@ -533,7 +545,7 @@ func (s *instructionSuite) run(testcases []opTestcase, opfunc OpFunction) {
 			continue
 		}
 
-		result := registers[0]
+		result := c.In.Registers[0]
 		s.Require().True(
 			c.Output.Equal(result),
 			"idx: %v, op: %v, case: %v\noutput not equal.\nExpect: %v\nResult: %v\n",

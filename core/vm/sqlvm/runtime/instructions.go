@@ -32,7 +32,7 @@ var (
 
 // OpFunction type
 // data could be fields Fields, pattern []byte, order Orders
-type OpFunction func(ctx *common.Context, ops, registers []*Operand, output uint) error
+type OpFunction func(ctx *common.Context, in Instruction) error
 
 // Instruction represents single instruction with essential information
 // collection.
@@ -41,6 +41,10 @@ type Instruction struct {
 	Input    []*Operand
 	Output   uint
 	Position uint32 // ast tree position
+
+	// Runtime assigned
+	Registers []*Operand
+	GasFunc   GasFunction
 }
 
 // Raw with embedded big.Int value or byte slice which represents the real value
@@ -119,19 +123,19 @@ func (op *Operand) toUint8() ([]uint8, error) {
 	return result, nil
 }
 
-func opLoad(ctx *common.Context, input []*Operand, registers []*Operand, output uint) error {
-	tableIdx := input[0].Data[0][0].Value.IntPart()
+func opLoad(ctx *common.Context, in Instruction) error {
+	tableIdx := in.Input[0].Data[0][0].Value.IntPart()
 	if tableIdx >= int64(len(ctx.Storage.Schema)) {
 		return se.ErrorCodeIndexOutOfRange
 	}
 	table := ctx.Storage.Schema[tableIdx]
 	tableRef := schema.TableRef(tableIdx)
 
-	ids, err := input[1].toUint64()
+	ids, err := in.Input[1].toUint64()
 	if err != nil {
 		return err
 	}
-	fields, err := input[2].toUint8()
+	fields, err := in.Input[2].toUint8()
 	if err != nil {
 		return err
 	}
@@ -165,7 +169,7 @@ func opLoad(ctx *common.Context, input []*Operand, registers []*Operand, output 
 			}
 		}
 	}
-	registers[output] = &op
+	in.Registers[in.Output] = &op
 	return nil
 }
 
@@ -414,19 +418,19 @@ func flowCheck(ctx *common.Context, v decimal.Decimal, dType ast.DataType) (err 
 	return
 }
 
-func opAdd(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opAdd(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op1, op2 := ops[0], ops[1]
+	op1, op2 := in.Input[0], in.Input[1]
 
 	if !metaAllEq(op1, op2) || !metaAllArith(op1) {
 		err = se.ErrorCodeInvalidDataType
 		return
 	}
 
-	l, err := findMaxDataLength(ops)
+	l, err := findMaxDataLength(in.Input)
 	if err != nil {
 		return
 	}
@@ -448,7 +452,7 @@ func opAdd(ctx *common.Context, ops, registers []*Operand, output uint) (err err
 		data[i] = raw
 	}
 
-	registers[output] = &Operand{Meta: op1.cloneMeta(), Data: data}
+	in.Registers[in.Output] = &Operand{Meta: op1.cloneMeta(), Data: data}
 	return
 }
 
@@ -470,19 +474,19 @@ func (r *Raw) add(r2 *Raw) (r3 *Raw) {
 	return
 }
 
-func opMul(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opMul(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op1, op2 := ops[0], ops[1]
+	op1, op2 := in.Input[0], in.Input[1]
 
 	if !metaAllEq(op1, op2) || !metaAllArith(op1) {
 		err = se.ErrorCodeInvalidDataType
 		return
 	}
 
-	l, err := findMaxDataLength(ops)
+	l, err := findMaxDataLength(in.Input)
 	if err != nil {
 		return
 	}
@@ -504,7 +508,7 @@ func opMul(ctx *common.Context, ops, registers []*Operand, output uint) (err err
 		data[i] = raw
 	}
 
-	registers[output] = &Operand{Meta: op1.cloneMeta(), Data: data}
+	in.Registers[in.Output] = &Operand{Meta: op1.cloneMeta(), Data: data}
 	return
 }
 
@@ -527,19 +531,19 @@ func (r *Raw) mul(r2 *Raw) (r3 *Raw) {
 	return
 }
 
-func opSub(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opSub(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op1, op2 := ops[0], ops[1]
+	op1, op2 := in.Input[0], in.Input[1]
 
 	if !metaAllEq(op1, op2) || !metaAllArith(op1) {
 		err = se.ErrorCodeInvalidDataType
 		return
 	}
 
-	l, err := findMaxDataLength(ops)
+	l, err := findMaxDataLength(in.Input)
 	if err != nil {
 		return
 	}
@@ -561,7 +565,7 @@ func opSub(ctx *common.Context, ops, registers []*Operand, output uint) (err err
 		data[i] = raw
 	}
 
-	registers[output] = &Operand{Meta: op1.cloneMeta(), Data: data}
+	in.Registers[in.Output] = &Operand{Meta: op1.cloneMeta(), Data: data}
 	return
 }
 
@@ -584,19 +588,19 @@ func (r *Raw) sub(r2 *Raw) (r3 *Raw) {
 	return
 }
 
-func opDiv(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opDiv(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op1, op2 := ops[0], ops[1]
+	op1, op2 := in.Input[0], in.Input[1]
 
 	if !metaAllEq(op1, op2) || !metaAllArith(op1) {
 		err = se.ErrorCodeInvalidDataType
 		return
 	}
 
-	l, err := findMaxDataLength(ops)
+	l, err := findMaxDataLength(in.Input)
 	if err != nil {
 		return
 	}
@@ -617,7 +621,7 @@ func opDiv(ctx *common.Context, ops, registers []*Operand, output uint) (err err
 		data[i] = raw
 	}
 
-	registers[output] = &Operand{Meta: op1.cloneMeta(), Data: data}
+	in.Registers[in.Output] = &Operand{Meta: op1.cloneMeta(), Data: data}
 	return
 }
 
@@ -653,19 +657,19 @@ func (r *Raw) div(r2 *Raw) (r3 *Raw, err error) {
 	return
 }
 
-func opMod(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opMod(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op1, op2 := ops[0], ops[1]
+	op1, op2 := in.Input[0], in.Input[1]
 
 	if !metaAllEq(op1, op2) || !metaAllArith(op1) {
 		err = se.ErrorCodeInvalidDataType
 		return
 	}
 
-	l, err := findMaxDataLength(ops)
+	l, err := findMaxDataLength(in.Input)
 	if err != nil {
 		return
 	}
@@ -686,7 +690,7 @@ func opMod(ctx *common.Context, ops, registers []*Operand, output uint) (err err
 		data[i] = raw
 	}
 
-	registers[output] = &Operand{Meta: op1.cloneMeta(), Data: data}
+	in.Registers[in.Output] = &Operand{Meta: op1.cloneMeta(), Data: data}
 	return
 }
 
@@ -716,19 +720,19 @@ func (r *Raw) mod(r2 *Raw) (r3 *Raw, err error) {
 	return
 }
 
-func opLt(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opLt(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op1, op2 := ops[0], ops[1]
+	op1, op2 := in.Input[0], in.Input[1]
 
 	if !metaAllEq(op1, op2) {
 		err = se.ErrorCodeInvalidDataType
 		return
 	}
 
-	l, err := findMaxDataLength(ops)
+	l, err := findMaxDataLength(in.Input)
 	if err != nil {
 		return
 	}
@@ -750,7 +754,7 @@ func opLt(ctx *common.Context, ops, registers []*Operand, output uint) (err erro
 		meta[i] = boolType
 	}
 
-	registers[output] = &Operand{Meta: meta, Data: data}
+	in.Registers[in.Output] = &Operand{Meta: meta, Data: data}
 	return
 }
 
@@ -771,19 +775,19 @@ func (r *Raw) lt(r2 *Raw) (lt bool) {
 	return
 }
 
-func opGt(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opGt(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op1, op2 := ops[0], ops[1]
+	op1, op2 := in.Input[0], in.Input[1]
 
 	if !metaAllEq(op1, op2) {
 		err = se.ErrorCodeInvalidDataType
 		return
 	}
 
-	l, err := findMaxDataLength(ops)
+	l, err := findMaxDataLength(in.Input)
 	if err != nil {
 		return
 	}
@@ -805,7 +809,7 @@ func opGt(ctx *common.Context, ops, registers []*Operand, output uint) (err erro
 		meta[i] = boolType
 	}
 
-	registers[output] = &Operand{Meta: meta, Data: data}
+	in.Registers[in.Output] = &Operand{Meta: meta, Data: data}
 	return
 }
 
@@ -826,19 +830,19 @@ func (r *Raw) gt(r2 *Raw) (gt bool) {
 	return
 }
 
-func opEq(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opEq(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op1, op2 := ops[0], ops[1]
+	op1, op2 := in.Input[0], in.Input[1]
 
 	if !metaAllEq(op1, op2) {
 		err = se.ErrorCodeInvalidDataType
 		return
 	}
 
-	l, err := findMaxDataLength(ops)
+	l, err := findMaxDataLength(in.Input)
 	if err != nil {
 		return
 	}
@@ -860,7 +864,7 @@ func opEq(ctx *common.Context, ops, registers []*Operand, output uint) (err erro
 		meta[i] = boolType
 	}
 
-	registers[output] = &Operand{Meta: meta, Data: data}
+	in.Registers[in.Output] = &Operand{Meta: meta, Data: data}
 	return
 }
 
@@ -872,12 +876,12 @@ func (t Tuple) eq(t2 Tuple, meta []ast.DataType) (t3 Tuple) {
 	return
 }
 
-func opAnd(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opAnd(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op1, op2 := ops[0], ops[1]
+	op1, op2 := in.Input[0], in.Input[1]
 
 	if !metaAllEq(op1, op2) {
 		err = se.ErrorCodeInvalidDataType
@@ -889,7 +893,7 @@ func opAnd(ctx *common.Context, ops, registers []*Operand, output uint) (err err
 		return
 	}
 
-	l, err := findMaxDataLength(ops)
+	l, err := findMaxDataLength(in.Input)
 	if err != nil {
 		return
 	}
@@ -911,7 +915,7 @@ func opAnd(ctx *common.Context, ops, registers []*Operand, output uint) (err err
 		meta[i] = boolType
 	}
 
-	registers[output] = &Operand{Meta: meta, Data: data}
+	in.Registers[in.Output] = &Operand{Meta: meta, Data: data}
 	return
 }
 
@@ -928,12 +932,12 @@ func (r *Raw) and(r2 *Raw) (r3 *Raw) {
 	return
 }
 
-func opOr(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opOr(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op1, op2 := ops[0], ops[1]
+	op1, op2 := in.Input[0], in.Input[1]
 
 	if !metaAllEq(op1, op2) {
 		err = se.ErrorCodeInvalidDataType
@@ -945,7 +949,7 @@ func opOr(ctx *common.Context, ops, registers []*Operand, output uint) (err erro
 		return
 	}
 
-	l, err := findMaxDataLength(ops)
+	l, err := findMaxDataLength(in.Input)
 	if err != nil {
 		return
 	}
@@ -967,7 +971,7 @@ func opOr(ctx *common.Context, ops, registers []*Operand, output uint) (err erro
 		meta[i] = boolType
 	}
 
-	registers[output] = &Operand{Meta: meta, Data: data}
+	in.Registers[in.Output] = &Operand{Meta: meta, Data: data}
 	return
 }
 
@@ -984,12 +988,12 @@ func (r *Raw) or(r2 *Raw) (r3 *Raw) {
 	return
 }
 
-func opNot(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 1 {
+func opNot(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 1 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op := ops[0]
+	op := in.Input[0]
 
 	if !metaAllBool(op) {
 		err = se.ErrorCodeInvalidDataType
@@ -1001,7 +1005,7 @@ func opNot(ctx *common.Context, ops, registers []*Operand, output uint) (err err
 		data[i] = op.Data[i].not()
 	}
 
-	registers[output] = &Operand{Meta: op.cloneMeta(), Data: data}
+	in.Registers[in.Output] = &Operand{Meta: op.cloneMeta(), Data: data}
 	return
 }
 
@@ -1018,12 +1022,12 @@ func (r *Raw) not() (r2 *Raw) {
 	return
 }
 
-func opUnion(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opUnion(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op1, op2 := ops[0], ops[1]
+	op1, op2 := in.Input[0], in.Input[1]
 
 	if !metaAllEq(op1, op2) {
 		err = se.ErrorCodeInvalidDataType
@@ -1057,16 +1061,16 @@ func opUnion(ctx *common.Context, ops, registers []*Operand, output uint) (err e
 		func(i, j int) bool { return op3.Data[i].less(op3.Data[j], orders) },
 	)
 
-	registers[output] = op3
+	in.Registers[in.Output] = op3
 	return
 }
 
-func opIntxn(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opIntxn(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op1, op2 := ops[0], ops[1]
+	op1, op2 := in.Input[0], in.Input[1]
 
 	if !metaAllEq(op1, op2) {
 		err = se.ErrorCodeInvalidDataType
@@ -1100,20 +1104,20 @@ func opIntxn(ctx *common.Context, ops, registers []*Operand, output uint) (err e
 		func(i, j int) bool { return op3.Data[i].less(op3.Data[j], orders) },
 	)
 
-	registers[output] = op3
+	in.Registers[in.Output] = op3
 	return
 }
 
-func opLike(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 && len(ops) != 3 {
+func opLike(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 && len(in.Input) != 3 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op, pattern := ops[0], ops[1]
+	op, pattern := in.Input[0], in.Input[1]
 
 	var escape *Operand
-	if len(ops) > 2 {
-		escape = ops[2]
+	if len(in.Input) > 2 {
+		escape = in.Input[2]
 	}
 
 	var cReg *regexp.Regexp
@@ -1197,7 +1201,7 @@ func opLike(ctx *common.Context, ops, registers []*Operand, output uint) (err er
 		meta[i] = boolType
 	}
 
-	registers[output] = &Operand{Meta: meta, Data: data}
+	in.Registers[in.Output] = &Operand{Meta: meta, Data: data}
 	return
 }
 
@@ -1283,49 +1287,49 @@ func (r *Raw) like(reg *regexp.Regexp) (r2 *Raw) {
 	return
 }
 
-func opZip(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) == 0 {
+func opZip(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) == 0 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
 
-	l, err := findMaxDataLength(ops)
+	l, err := findMaxDataLength(in.Input)
 	if err != nil {
 		return
 	}
 
 	op3 := &Operand{Meta: make([]ast.DataType, 0), Data: make([]Tuple, l)}
 
-	for i := 0; i < len(ops); i++ {
-		op3.Meta = append(op3.Meta, ops[i].Meta...)
+	for i := 0; i < len(in.Input); i++ {
+		op3.Meta = append(op3.Meta, in.Input[i].Meta...)
 	}
 
 	for i := 0; i < l; i++ {
-		if ops[0].IsImmediate {
-			op3.Data[i] = append(Tuple{}, ops[0].Data[0]...)
+		if in.Input[0].IsImmediate {
+			op3.Data[i] = append(Tuple{}, in.Input[0].Data[0]...)
 		} else {
-			op3.Data[i] = append(Tuple{}, ops[0].Data[i]...)
+			op3.Data[i] = append(Tuple{}, in.Input[0].Data[i]...)
 		}
 
-		for j := 1; j < len(ops); j++ {
-			if ops[j].IsImmediate {
-				op3.Data[i] = append(op3.Data[i], ops[j].Data[0]...)
+		for j := 1; j < len(in.Input); j++ {
+			if in.Input[j].IsImmediate {
+				op3.Data[i] = append(op3.Data[i], in.Input[j].Data[0]...)
 			} else {
-				op3.Data[i] = append(op3.Data[i], ops[j].Data[i]...)
+				op3.Data[i] = append(op3.Data[i], in.Input[j].Data[i]...)
 			}
 		}
 	}
 
-	registers[output] = op3
+	in.Registers[in.Output] = op3
 	return
 }
 
-func opField(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opField(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op, fields := ops[0], ops[1].Data[0]
+	op, fields := in.Input[0], in.Input[1].Data[0]
 	fLen := len(fields)
 
 	var fieldIdx uint16
@@ -1348,17 +1352,17 @@ func opField(ctx *common.Context, ops, registers []*Operand, output uint) (err e
 		data[i] = tuple
 	}
 
-	registers[output] = &Operand{Meta: meta, Data: data}
+	in.Registers[in.Output] = &Operand{Meta: meta, Data: data}
 	return
 }
 
 // in-place Op
-func opPrune(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opPrune(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op, fields := ops[0], ops[1].Data[0]
+	op, fields := in.Input[0], in.Input[1].Data[0]
 	fLen := len(fields)
 
 	var fieldIdx uint16
@@ -1405,12 +1409,12 @@ func pruneTuple(t Tuple, prune []int) Tuple {
 }
 
 // in-place Op
-func opCut(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opCut(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op, slice := ops[0], ops[1].Data[0]
+	op, slice := in.Input[0], in.Input[1].Data[0]
 
 	maxL := uint16(len(op.Meta))
 	start, end := value2ColIdx(slice[0].Value), maxL
@@ -1429,17 +1433,17 @@ func opCut(ctx *common.Context, ops, registers []*Operand, output uint) (err err
 		op.Data[i] = append(op.Data[i][:start], op.Data[i][end:]...)
 	}
 
-	registers[output] = op
+	in.Registers[in.Output] = op
 	return
 }
 
 // in-place Op
-func opRange(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opRange(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op, slice := ops[0], ops[1].Data[0]
+	op, slice := in.Input[0], in.Input[1].Data[0]
 
 	offset, err := ast.DecimalToUint64(slice[0].Value)
 	if err != nil {
@@ -1465,21 +1469,21 @@ func opRange(ctx *common.Context, ops, registers []*Operand, output uint) (err e
 		}
 	}
 
-	registers[output] = op
+	in.Registers[in.Output] = op
 	return
 }
 
 // in-place Op
-func opSort(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opSort(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op := ops[0]
+	op := in.Input[0]
 
 	// orders (ascending bool, field)
-	orders := make([]sortOption, len(ops[1].Data))
-	for i, o := range ops[1].Data {
+	orders := make([]sortOption, len(in.Input[1].Data))
+	for i, o := range in.Input[1].Data {
 		orders[i] = sortOption{
 			Asc:   o[0].isTrue(),
 			Field: uint(value2ColIdx(o[1].Value)),
@@ -1529,12 +1533,12 @@ func (r *Raw) cmp(r2 *Raw) (v int) {
 	return
 }
 
-func opFilter(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opFilter(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op, filters := ops[0], ops[1]
+	op, filters := in.Input[0], in.Input[1]
 
 	op2 := &Operand{Meta: op.cloneMeta(), Data: make([]Tuple, 0)}
 
@@ -1544,25 +1548,25 @@ func opFilter(ctx *common.Context, ops, registers []*Operand, output uint) (err 
 		}
 	}
 
-	registers[output] = op2
+	in.Registers[in.Output] = op2
 	return
 }
 
 // Type check will ensure all cast is valid
-func opCast(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opCast(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
-	op := ops[0]
-	dTypes := ops[1].Meta
+	op := in.Input[0]
+	dTypes := in.Input[1].Meta
 
 	if len(dTypes) != len(op.Meta) {
 		err = se.ErrorCodeInvalidDataType
 		return
 	}
 
-	op2 := &Operand{Meta: ops[1].cloneMeta(), Data: make([]Tuple, len(op.Data))}
+	op2 := &Operand{Meta: in.Input[1].cloneMeta(), Data: make([]Tuple, len(op.Data))}
 	for i := 0; i < len(op.Data); i++ {
 		op2.Data[i] = append(Tuple{}, op.Data[i]...)
 
@@ -1578,7 +1582,7 @@ func opCast(ctx *common.Context, ops, registers []*Operand, output uint) (err er
 		}
 	}
 
-	registers[output] = op2
+	in.Registers[in.Output] = op2
 	return
 }
 
@@ -1773,12 +1777,12 @@ func (r *Raw) shiftBytes(src []byte, l int, signed, rPadding bool) (tgr []byte) 
 	return
 }
 
-func opConcat(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 2 {
+func opConcat(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 2 {
 		err = se.ErrorCodeDataLengthNotMatch
 		return
 	}
-	op, op2 := ops[0], ops[1]
+	op, op2 := in.Input[0], in.Input[1]
 
 	if !metaAllEq(op, op2) {
 		err = se.ErrorCodeInvalidDataType
@@ -1797,7 +1801,7 @@ func opConcat(ctx *common.Context, ops, registers []*Operand, output uint) (err 
 		op3.Data[i] = op.Data[i].concat(op2.Data[i])
 	}
 
-	registers[output] = op3
+	in.Registers[in.Output] = op3
 	return
 }
 
@@ -1811,12 +1815,12 @@ func (t Tuple) concat(t2 Tuple) (t3 Tuple) {
 	return
 }
 
-func opNeg(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) != 1 {
+func opNeg(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) != 1 {
 		err = se.ErrorCodeDataLengthNotMatch
 		return
 	}
-	op := ops[0]
+	op := in.Input[0]
 
 	if !metaAllSignedNumeric(op) {
 		err = se.ErrorCodeInvalidDataType
@@ -1833,7 +1837,7 @@ func opNeg(ctx *common.Context, ops, registers []*Operand, output uint) (err err
 		}
 	}
 
-	registers[output] = op2
+	in.Registers[in.Output] = op2
 	return
 }
 
@@ -1850,14 +1854,14 @@ func (t Tuple) neg(ctx *common.Context, meta []ast.DataType) (t2 Tuple, err erro
 	return
 }
 
-func opFunc(ctx *common.Context, ops, registers []*Operand, output uint) (err error) {
-	if len(ops) < 2 {
+func opFunc(ctx *common.Context, in Instruction) (err error) {
+	if len(in.Input) < 2 {
 		err = se.ErrorCodeInvalidOperandNum
 		return
 	}
 
 	var (
-		opLength, opFuncID = ops[0], ops[1]
+		opLength, opFuncID = in.Input[0], in.Input[1]
 		result             *Operand
 		length             uint64
 	)
@@ -1882,12 +1886,12 @@ func opFunc(ctx *common.Context, ops, registers []*Operand, output uint) (err er
 		return
 	}
 
-	result, err = fnTable[id](ctx, ops[2:], length)
+	result, err = fnTable[id](ctx, in.Input[2:], length)
 	if err != nil {
 		return
 	}
 
-	registers[output] = result
+	in.Registers[in.Output] = result
 	return
 }
 
@@ -1908,12 +1912,12 @@ func uint64ToOperands(numbers []uint64) (*Operand, error) {
 	return result, nil
 }
 
-func opRepeatPK(ctx *common.Context, input []*Operand, registers []*Operand, output int) (err error) {
-	tableRef, err := input[0].toTableRef()
+func opRepeatPK(ctx *common.Context, in Instruction) (err error) {
+	tableRef, err := in.Input[0].toTableRef()
 	if err != nil {
 		return err
 	}
 	IDs := ctx.Storage.RepeatPK(ctx.Contract.Address(), tableRef)
-	registers[output], err = uint64ToOperands(IDs)
+	in.Registers[in.Output], err = uint64ToOperands(IDs)
 	return
 }
