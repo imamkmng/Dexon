@@ -889,7 +889,7 @@ func checkExpr(n ast.ExprNode,
 		return checkLessOperator(n, s, o, c, el, tr, ta)
 
 	case *ast.ConcatOperatorNode:
-		return n
+		return checkConcatOperator(n, s, o, c, el, tr, ta)
 
 	case *ast.AddOperatorNode:
 		return n
@@ -1023,6 +1023,7 @@ func checkVariable(n *ast.IdentifierNode,
 	dt := s[tr].Columns[cr].Type
 	switch a := ta.(type) {
 	case typeActionInferDefault:
+	case typeActionInferWithMajor:
 	case typeActionInferWithSize:
 	case typeActionAssign:
 		if !dt.Equal(a.dt) {
@@ -1080,6 +1081,7 @@ func checkBoolValue(n *ast.BoolValueNode,
 
 	switch a := ta.(type) {
 	case typeActionInferDefault:
+	case typeActionInferWithMajor:
 	case typeActionInferWithSize:
 	case typeActionAssign:
 		major, _ := ast.DecomposeDataType(a.dt)
@@ -1098,6 +1100,7 @@ func checkAddressValue(n *ast.AddressValueNode,
 
 	switch a := ta.(type) {
 	case typeActionInferDefault:
+	case typeActionInferWithMajor:
 	case typeActionInferWithSize:
 	case typeActionAssign:
 		major, _ := ast.DecomposeDataType(a.dt)
@@ -1473,6 +1476,34 @@ executeTypeAction:
 		ta = newTypeActionAssign(dt)
 		goto executeTypeAction
 
+	case typeActionInferWithMajor:
+		switch a.major {
+		case ast.DataTypeMajorFixedBytes:
+			if len(n.V) < 1 || len(n.V) > 32 {
+				el.Append(errors.Error{
+					Position: n.GetPosition(),
+					Length:   n.GetLength(),
+					Category: errors.ErrorCategorySemantic,
+					Code:     errors.ErrorCodeTypeError,
+					Severity: errors.ErrorSeverityError,
+					Prefix:   fn,
+					Message: fmt.Sprintf(
+						"cannot infer %s (length %d) as fixed-size bytes",
+						ast.QuoteString(n.V), len(n.V)),
+				}, nil)
+				return nil
+			}
+			minor := ast.DataTypeMinor(len(n.V))
+			dt = ast.ComposeDataType(a.major, minor)
+			ta = newTypeActionAssign(dt)
+		case ast.DataTypeMajorDynamicBytes:
+			dt = ast.ComposeDataType(a.major, ast.DataTypeMinorDontCare)
+			ta = newTypeActionAssign(dt)
+		default:
+			ta = newTypeActionInferDefault()
+		}
+		goto executeTypeAction
+
 	case typeActionInferWithSize:
 		major := ast.DataTypeMajorFixedBytes
 		minor := ast.DataTypeMinor(a.size - 1)
@@ -1524,6 +1555,8 @@ func checkNullValue(n *ast.NullValueNode,
 	dt := ast.DataTypePending
 	switch a := ta.(type) {
 	case typeActionInferDefault:
+		dt = ast.DataTypeNull
+	case typeActionInferWithMajor:
 		dt = ast.DataTypeNull
 	case typeActionInferWithSize:
 		dt = ast.DataTypeNull
@@ -1673,6 +1706,11 @@ func checkPosOperator(n *ast.PosOperatorNode,
 			r = checkExpr(r, s, o, c, el, tr, ta)
 		}
 
+	case typeActionInferWithMajor:
+		if dt.Pending() {
+			r = checkExpr(r, s, o, c, el, tr, ta)
+		}
+
 	case typeActionInferWithSize:
 		if dt.Pending() {
 			r = checkExpr(r, s, o, c, el, tr, ta)
@@ -1771,6 +1809,11 @@ func checkNegOperator(n *ast.NegOperatorNode,
 			r = checkExpr(r, s, o, c, el, tr, ta)
 		}
 
+	case typeActionInferWithMajor:
+		if dt.Pending() {
+			r = checkExpr(r, s, o, c, el, tr, ta)
+		}
+
 	case typeActionInferWithSize:
 		if dt.Pending() {
 			r = checkExpr(r, s, o, c, el, tr, ta)
@@ -1859,6 +1902,7 @@ func checkNotOperator(n *ast.NotOperatorNode,
 
 	switch a := ta.(type) {
 	case typeActionInferDefault:
+	case typeActionInferWithMajor:
 	case typeActionInferWithSize:
 	case typeActionAssign:
 		if !dt.Equal(a.dt) {
@@ -1942,6 +1986,7 @@ func checkAndOperator(n *ast.AndOperatorNode,
 
 	switch a := ta.(type) {
 	case typeActionInferDefault:
+	case typeActionInferWithMajor:
 	case typeActionInferWithSize:
 	case typeActionAssign:
 		if !dt.Equal(a.dt) {
@@ -2013,6 +2058,7 @@ func checkOrOperator(n *ast.OrOperatorNode,
 
 	switch a := ta.(type) {
 	case typeActionInferDefault:
+	case typeActionInferWithMajor:
 	case typeActionInferWithSize:
 	case typeActionAssign:
 		if !dt.Equal(a.dt) {
@@ -2310,6 +2356,7 @@ func checkRelationalOperator(n ast.BinaryOperator,
 
 	switch a := ta.(type) {
 	case typeActionInferDefault:
+	case typeActionInferWithMajor:
 	case typeActionInferWithSize:
 	case typeActionAssign:
 		if !dt.Equal(a.dt) {
@@ -2476,4 +2523,314 @@ func checkLessOperator(n *ast.LessOperatorNode,
 			return ast.NewBoolValueFromBool(v1.Decimal.LessThan(v2.Decimal))
 		},
 	)
+}
+
+func validateBytesType(dt ast.DataType, el *errors.ErrorList, n ast.ExprNode,
+	fn, op string) bool {
+
+	if !dt.Pending() {
+		major, _ := ast.DecomposeDataType(dt)
+		switch major {
+		case ast.DataTypeMajorFixedBytes,
+			ast.DataTypeMajorDynamicBytes:
+		default:
+			elAppendTypeErrorOperatorDataType(el, n, fn, op, dt)
+			return false
+		}
+	}
+	return true
+}
+
+type extractBytesValueStatus uint8
+
+const (
+	extractBytesValueStatusError extractBytesValueStatus = iota
+	extractBytesValueStatusBytes
+	extractBytesValueStatusNullWithType
+	extractBytesValueStatusNullWithoutType
+)
+
+func extractBytesValue(n ast.Valuer, el *errors.ErrorList,
+	fn, op string) ([]byte, extractBytesValueStatus) {
+
+	switch n := n.(type) {
+	case *ast.BytesValueNode:
+		return n.V, extractBytesValueStatusBytes
+	case *ast.NullValueNode:
+		if n.GetType().Pending() {
+			return nil, extractBytesValueStatusNullWithoutType
+		}
+		return nil, extractBytesValueStatusNullWithType
+	case *ast.BoolValueNode:
+	case *ast.AddressValueNode:
+	case *ast.IntegerValueNode:
+	case *ast.DecimalValueNode:
+	default:
+		panic(unknownValueNodeType(n))
+	}
+	elAppendTypeErrorOperatorValueNode(el, n, fn, op)
+	return nil, extractBytesValueStatusError
+}
+
+func checkConcatOperator(n *ast.ConcatOperatorNode,
+	s schema.Schema, o CheckOptions, c *schemaCache, el *errors.ErrorList,
+	tr schema.TableRef, ta typeAction) ast.ExprNode {
+
+	fn := "CheckConcatOperator"
+	op := "binary operator ||"
+
+	object := n.GetObject()
+	object = checkExpr(object, s, o, c, el, tr, nil)
+	if object == nil {
+		return nil
+	}
+	subject := n.GetSubject()
+	subject = checkExpr(subject, s, o, c, el, tr, nil)
+	if subject == nil {
+		return nil
+	}
+	n.SetObject(object)
+	n.SetSubject(subject)
+	r := ast.ExprNode(n)
+
+	dtObject := object.GetType()
+	if !validateBytesType(dtObject, el, object, fn, op) {
+		return nil
+	}
+	dtSubject := subject.GetType()
+	if !validateBytesType(dtSubject, el, subject, fn, op) {
+		return nil
+	}
+
+	dtObjectDetermined := !dtObject.Pending()
+	dtSubjectDetermined := !dtSubject.Pending()
+
+	// We cannot use inferBinaryOperatorType because we allows two sides of the
+	// operator to have different types.
+	unknownBytesMajor := func(major ast.DataTypeMajor) string {
+		return fmt.Sprintf("%02x is not a bytes type", uint8(major))
+	}
+	describeBytesMajor := func(major ast.DataTypeMajor) string {
+		switch major {
+		case ast.DataTypeMajorFixedBytes:
+			return "fixed-size"
+		case ast.DataTypeMajorDynamicBytes:
+			return "dynamically-sized"
+		default:
+			panic(unknownBytesMajor(major))
+		}
+	}
+	reportMismatch := func(n ast.ExprNode, major1, major2 ast.DataTypeMajor) {
+		el.Append(errors.Error{
+			Position: n.GetPosition(),
+			Length:   n.GetLength(),
+			Category: errors.ErrorCategorySemantic,
+			Code:     errors.ErrorCodeTypeError,
+			Severity: errors.ErrorSeverityError,
+			Prefix:   fn,
+			Message: fmt.Sprintf("cannot use %s between %s and %s bytes", op,
+				describeBytesMajor(major1), describeBytesMajor(major2)),
+		}, nil)
+	}
+	reportTooBig := func(dt1, dt2 ast.DataType) {
+		el.Append(errors.Error{
+			Position: n.GetPosition(),
+			Length:   n.GetLength(),
+			Category: errors.ErrorCategorySemantic,
+			Code:     errors.ErrorCodeTypeError,
+			Severity: errors.ErrorSeverityError,
+			Prefix:   fn,
+			Message: fmt.Sprintf(
+				"cannot use %s between %s (%04x) and %s (%04x) because "+
+					"the result will be longer than 32 bytes",
+				op, dt1.String(), uint16(dt1), dt2.String(), uint16(dt2)),
+		}, nil)
+		el.Append(errors.Error{
+			Position: n.GetPosition(),
+			Length:   n.GetLength(),
+			Category: 0,
+			Code:     0,
+			Severity: errors.ErrorSeverityNote,
+			Prefix:   fn,
+			Message: fmt.Sprintf(
+				"convert both arguments to %s bytes in order to "+
+					"produce a binary string that is bigger than a slot",
+				describeBytesMajor(ast.DataTypeMajorDynamicBytes)),
+		}, nil)
+	}
+	updateObject := func() {
+		n.SetObject(object)
+		dtObject = object.GetType()
+		dtObjectDetermined = !dtObject.Pending()
+	}
+	updateSubject := func() {
+		n.SetSubject(subject)
+		dtSubject = subject.GetType()
+		dtSubjectDetermined = !dtSubject.Pending()
+	}
+	infer := func() (ast.DataType, bool) {
+		if !dtObjectDetermined {
+			panic("dtObject is pending")
+		}
+		if !dtSubjectDetermined {
+			panic("dtSubject is pending")
+		}
+		majorObject, minorObject := ast.DecomposeDataType(dtObject)
+		majorSubject, minorSubject := ast.DecomposeDataType(dtSubject)
+		if majorObject != majorSubject {
+			reportMismatch(n, majorObject, majorSubject)
+			return ast.DataTypeBad, false
+		}
+		switch majorObject {
+		case ast.DataTypeMajorFixedBytes:
+			sizeObject := int(minorObject) + 1
+			sizeSubject := int(minorSubject) + 1
+			sizeOperator := sizeObject + sizeSubject
+			if sizeOperator > 32 {
+				reportTooBig(dtObject, dtSubject)
+				return ast.DataTypeBad, false
+			}
+			majorOperator := ast.DataTypeMajorFixedBytes
+			minorOperator := ast.DataTypeMinor(sizeOperator - 1)
+			return ast.ComposeDataType(majorOperator, minorOperator), true
+		case ast.DataTypeMajorDynamicBytes:
+			return dtObject, true
+		default:
+			panic(unknownBytesMajor(majorObject))
+		}
+	}
+
+	switch {
+	case dtObjectDetermined && dtSubjectDetermined:
+		dt, ok := infer()
+		if !ok {
+			return nil
+		}
+		n.SetType(dt)
+
+	case dtObjectDetermined && !dtSubjectDetermined:
+		var action typeAction
+		major, _ := ast.DecomposeDataType(dtObject)
+		switch major {
+		case ast.DataTypeMajorFixedBytes:
+			action = newTypeActionInferWithMajor(ast.DataTypeMajorFixedBytes)
+		case ast.DataTypeMajorDynamicBytes:
+			action = newTypeActionAssign(dtObject)
+		default:
+			panic(unknownBytesMajor(major))
+		}
+		subject = checkExpr(subject, s, o, c, el, tr, action)
+		if subject == nil {
+			return nil
+		}
+		updateSubject()
+		dt, ok := infer()
+		if !ok {
+			return nil
+		}
+		n.SetType(dt)
+
+	case !dtObjectDetermined && dtSubjectDetermined:
+		var action typeAction
+		major, _ := ast.DecomposeDataType(dtSubject)
+		switch major {
+		case ast.DataTypeMajorFixedBytes:
+			action = newTypeActionInferWithMajor(ast.DataTypeMajorFixedBytes)
+		case ast.DataTypeMajorDynamicBytes:
+			action = newTypeActionAssign(dtSubject)
+		default:
+			panic(unknownBytesMajor(major))
+		}
+		object = checkExpr(object, s, o, c, el, tr, action)
+		if object == nil {
+			return nil
+		}
+		updateObject()
+		dt, ok := infer()
+		if !ok {
+			return nil
+		}
+		n.SetType(dt)
+
+	case !dtObjectDetermined && !dtSubjectDetermined:
+		// Keep it undetermined if both sides are pending.
+
+	default:
+		panic("unreachable")
+	}
+	dt := n.GetType()
+
+	if object, ok := object.(ast.Valuer); ok {
+		if subject, ok := subject.(ast.Valuer); ok {
+			null := false
+			v1, status := extractBytesValue(object, el, fn, op)
+			switch status {
+			case extractBytesValueStatusError:
+				return nil
+			case extractBytesValueStatusBytes:
+			case extractBytesValueStatusNullWithType:
+				null = true
+			case extractBytesValueStatusNullWithoutType:
+				elAppendTypeErrorOperatorValueNode(el, object, fn, op)
+				return nil
+			default:
+				panic(fmt.Sprintf("unknown status %d", status))
+			}
+			v2, status := extractBytesValue(subject, el, fn, op)
+			switch status {
+			case extractBytesValueStatusError:
+				return nil
+			case extractBytesValueStatusBytes:
+			case extractBytesValueStatusNullWithType:
+				null = true
+			case extractBytesValueStatusNullWithoutType:
+				elAppendTypeErrorOperatorValueNode(el, subject, fn, op)
+				return nil
+			default:
+				panic(fmt.Sprintf("unknown status %d", status))
+			}
+			if null {
+				node := &ast.NullValueNode{}
+				r = node
+			} else {
+				node := &ast.BytesValueNode{}
+				node.V = make([]byte, 0, len(v1)+len(v2))
+				node.V = append(node.V, v1...)
+				node.V = append(node.V, v2...)
+				r = node
+			}
+			r.SetPosition(n.GetPosition())
+			r.SetLength(n.GetLength())
+			r.SetToken(n.GetToken())
+			r.SetType(dt)
+		}
+	}
+
+	switch a := ta.(type) {
+	case typeActionInferDefault:
+		if dt.Pending() {
+			r = checkExpr(r, s, o, c, el, tr, ta)
+		}
+
+	case typeActionInferWithMajor:
+		if dt.Pending() {
+			r = checkExpr(r, s, o, c, el, tr, ta)
+		}
+
+	case typeActionInferWithSize:
+		if dt.Pending() {
+			r = checkExpr(r, s, o, c, el, tr, ta)
+		}
+
+	case typeActionAssign:
+		if dt.Pending() {
+			r = checkExpr(r, s, o, c, el, tr, ta)
+		} else {
+			if !dt.Equal(a.dt) {
+				elAppendTypeErrorAssignDataType(el, n, fn, a.dt, dt)
+				return nil
+			}
+		}
+	}
+	return r
 }

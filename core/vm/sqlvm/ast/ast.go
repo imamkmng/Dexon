@@ -910,16 +910,11 @@ func (n *LessOperatorNode) GetType() DataType {
 
 // ConcatOperatorNode is '||'.
 type ConcatOperatorNode struct {
-	UntaggedExprNodeBase
+	TaggedExprNodeBase
 	BinaryOperatorNode
 }
 
 var _ BinaryOperator = (*ConcatOperatorNode)(nil)
-
-// GetType returns the type of 'bytes'.
-func (n *ConcatOperatorNode) GetType() DataType {
-	return ComposeDataType(DataTypeMajorDynamicBytes, DataTypeMinorDontCare)
-}
 
 // AddOperatorNode is '+'.
 type AddOperatorNode struct {
