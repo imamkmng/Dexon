@@ -507,6 +507,10 @@ func newConstantValueBool(b ast.BoolValue) constantValueBool {
 	return constantValueBool(b)
 }
 
+func newConstantValueBoolFromNil() constantValueBool {
+	return constantValueBool(ast.BoolValueUnknown)
+}
+
 func (b constantValueBool) GetBool() ast.BoolValue {
 	return ast.BoolValue(b)
 }
@@ -524,6 +528,10 @@ func newConstantValueBytes(b []byte) constantValueBytes {
 	return constantValueBytes(b)
 }
 
+func newConstantValueBytesFromNil() constantValueBytes {
+	return nil
+}
+
 func (b constantValueBytes) GetBytes() []byte {
 	return []byte(b)
 }
@@ -536,6 +544,10 @@ func (constantValueDecimal) ˉconstantValue() {}
 
 func newConstantValueDecimal(d decimal.Decimal) constantValueDecimal {
 	return constantValueDecimal{Decimal: d, Valid: true}
+}
+
+func newConstantValueDecimalFromNil() constantValueDecimal {
+	return constantValueDecimal{Valid: false}
 }
 
 func (d constantValueDecimal) GetDecimal() decimal.NullDecimal {
