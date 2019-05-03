@@ -722,22 +722,6 @@ func checkCreateIndexStmt(n *ast.CreateIndexStmtNode, s *schema.Schema,
 	index := schema.Index{}
 	index.Columns = columnRefs.columns
 
-	if len((*s)[td.Table].Indices) > schema.MaxIndexRef {
-		el.Append(errors.Error{
-			Position: n.GetPosition(),
-			Length:   n.GetLength(),
-			Category: errors.ErrorCategoryLimit,
-			Code:     errors.ErrorCodeTooManyIndices,
-			Severity: errors.ErrorSeverityError,
-			Prefix:   fn,
-			Message: fmt.Sprintf(
-				"cannot have more than %d indices in table %s",
-				schema.MaxIndexRef+1,
-				ast.QuoteIdentifier(tn)),
-		}, &hasError)
-		return
-	}
-
 	ir := schema.IndexRef(len((*s)[td.Table].Indices))
 	id := schema.IndexDescriptor{Table: td.Table, Index: ir}
 	if n.Unique != nil {
@@ -806,6 +790,21 @@ func checkCreateIndexStmt(n *ast.CreateIndexStmtNode, s *schema.Schema,
 	if rename {
 		(*s)[id.Table].Indices[id.Index].Name = n.Index.Name
 	} else {
+		if len((*s)[td.Table].Indices) > schema.MaxIndexRef {
+			el.Append(errors.Error{
+				Position: n.GetPosition(),
+				Length:   n.GetLength(),
+				Category: errors.ErrorCategoryLimit,
+				Code:     errors.ErrorCodeTooManyIndices,
+				Severity: errors.ErrorSeverityError,
+				Prefix:   fn,
+				Message: fmt.Sprintf(
+					"cannot have more than %d indices in table %s",
+					schema.MaxIndexRef+1,
+					ast.QuoteIdentifier(tn)),
+			}, &hasError)
+			return
+		}
 		index.Name = n.Index.Name
 		(*s)[id.Table].Indices = append((*s)[id.Table].Indices, index)
 	}
