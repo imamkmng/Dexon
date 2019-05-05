@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"regexp"
 	"sort"
@@ -170,6 +171,8 @@ func opLoad(ctx *common.Context, in Instruction) error {
 		}
 	}
 	in.Registers[in.Output] = &op
+
+	err = applyGas(ctx, in.GasFunc, op.bytesCount())
 	return nil
 }
 
@@ -418,6 +421,38 @@ func flowCheck(ctx *common.Context, v decimal.Decimal, dType ast.DataType) (err 
 	return
 }
 
+func (op *Operand) elementCount() uint64 {
+	return uint64(len(op.Meta) * len(op.Data))
+}
+
+func (op *Operand) bytesCount() (count uint64) {
+	var (
+		dt    ast.DataType
+		major ast.DataTypeMajor
+		cache uint64
+	)
+
+	for i := 0; i < len(op.Meta); i++ {
+		dt = op.Meta[i]
+		major, _ = ast.DecomposeDataType(dt)
+		switch major {
+		case ast.DataTypeMajorDynamicBytes:
+			for j := 0; j < len(op.Data); j++ {
+				cache += uint64(len(op.Data[j][i].Bytes))
+			}
+		default:
+			cache = uint64(dt.Size()) * uint64(len(op.Data))
+		}
+
+		if (cache + count) < count {
+			// charge max which should occur out of gas
+			count = math.MaxUint64
+			return
+		}
+	}
+	return
+}
+
 func opAdd(ctx *common.Context, in Instruction) (err error) {
 	if len(in.Input) != 2 {
 		err = se.ErrorCodeInvalidOperandNum
@@ -453,6 +488,8 @@ func opAdd(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = &Operand{Meta: op1.cloneMeta(), Data: data}
+
+	err = applyGas(ctx, in.GasFunc, in.Registers[in.Output].elementCount())
 	return
 }
 
@@ -509,6 +546,8 @@ func opMul(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = &Operand{Meta: op1.cloneMeta(), Data: data}
+
+	err = applyGas(ctx, in.GasFunc, in.Registers[in.Output].elementCount())
 	return
 }
 
@@ -566,6 +605,8 @@ func opSub(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = &Operand{Meta: op1.cloneMeta(), Data: data}
+
+	err = applyGas(ctx, in.GasFunc, in.Registers[in.Output].elementCount())
 	return
 }
 
@@ -622,6 +663,8 @@ func opDiv(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = &Operand{Meta: op1.cloneMeta(), Data: data}
+
+	err = applyGas(ctx, in.GasFunc, in.Registers[in.Output].elementCount())
 	return
 }
 
@@ -691,6 +734,8 @@ func opMod(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = &Operand{Meta: op1.cloneMeta(), Data: data}
+
+	err = applyGas(ctx, in.GasFunc, in.Registers[in.Output].elementCount())
 	return
 }
 
@@ -755,6 +800,8 @@ func opLt(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = &Operand{Meta: meta, Data: data}
+
+	err = applyGas(ctx, in.GasFunc, in.Registers[in.Output].elementCount())
 	return
 }
 
@@ -810,6 +857,8 @@ func opGt(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = &Operand{Meta: meta, Data: data}
+
+	err = applyGas(ctx, in.GasFunc, in.Registers[in.Output].elementCount())
 	return
 }
 
@@ -865,6 +914,8 @@ func opEq(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = &Operand{Meta: meta, Data: data}
+
+	err = applyGas(ctx, in.GasFunc, in.Registers[in.Output].elementCount())
 	return
 }
 
@@ -916,6 +967,8 @@ func opAnd(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = &Operand{Meta: meta, Data: data}
+
+	err = applyGas(ctx, in.GasFunc, in.Registers[in.Output].elementCount())
 	return
 }
 
@@ -972,6 +1025,8 @@ func opOr(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = &Operand{Meta: meta, Data: data}
+
+	err = applyGas(ctx, in.GasFunc, in.Registers[in.Output].elementCount())
 	return
 }
 
@@ -1006,6 +1061,8 @@ func opNot(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = &Operand{Meta: op.cloneMeta(), Data: data}
+
+	err = applyGas(ctx, in.GasFunc, in.Registers[in.Output].elementCount())
 	return
 }
 
@@ -1062,6 +1119,8 @@ func opUnion(ctx *common.Context, in Instruction) (err error) {
 	)
 
 	in.Registers[in.Output] = op3
+
+	err = applyGas(ctx, in.GasFunc, in.Registers[in.Output].elementCount())
 	return
 }
 
@@ -1105,6 +1164,8 @@ func opIntxn(ctx *common.Context, in Instruction) (err error) {
 	)
 
 	in.Registers[in.Output] = op3
+
+	err = applyGas(ctx, in.GasFunc, in.Registers[in.Output].elementCount())
 	return
 }
 
@@ -1202,6 +1263,8 @@ func opLike(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = &Operand{Meta: meta, Data: data}
+
+	err = applyGas(ctx, in.GasFunc, in.Registers[in.Output].elementCount())
 	return
 }
 
@@ -1321,6 +1384,8 @@ func opZip(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = op3
+
+	err = applyGas(ctx, in.GasFunc, in.Registers[in.Output].elementCount())
 	return
 }
 
@@ -1353,6 +1418,12 @@ func opField(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = &Operand{Meta: meta, Data: data}
+
+	err = applyGas(
+		ctx,
+		in.GasFunc,
+		op.elementCount()-in.Registers[in.Output].elementCount(),
+	)
 	return
 }
 
@@ -1364,6 +1435,7 @@ func opPrune(ctx *common.Context, in Instruction) (err error) {
 	}
 	op, fields := in.Input[0], in.Input[1].Data[0]
 	fLen := len(fields)
+	oNum := op.elementCount()
 
 	var fieldIdx uint16
 	fieldIdxs := make([]int, fLen)
@@ -1381,6 +1453,8 @@ func opPrune(ctx *common.Context, in Instruction) (err error) {
 	for i := 0; i < len(op.Data); i++ {
 		op.Data[i] = pruneTuple(op.Data[i], fieldIdxs)
 	}
+
+	err = applyGas(ctx, in.GasFunc, oNum-op.elementCount())
 	return
 }
 
@@ -1415,6 +1489,7 @@ func opCut(ctx *common.Context, in Instruction) (err error) {
 		return
 	}
 	op, slice := in.Input[0], in.Input[1].Data[0]
+	oNum := op.elementCount()
 
 	maxL := uint16(len(op.Meta))
 	start, end := value2ColIdx(slice[0].Value), maxL
@@ -1434,6 +1509,8 @@ func opCut(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = op
+
+	err = applyGas(ctx, in.GasFunc, oNum-op.elementCount())
 	return
 }
 
@@ -1470,6 +1547,8 @@ func opRange(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = op
+
+	err = applyGas(ctx, in.GasFunc, op.elementCount())
 	return
 }
 
@@ -1490,10 +1569,19 @@ func opSort(ctx *common.Context, in Instruction) (err error) {
 		}
 	}
 
+	var count uint64
 	sort.SliceStable(
 		op.Data,
-		func(i, j int) bool { return op.Data[i].less(op.Data[j], orders) },
+		func(i, j int) bool {
+			less := op.Data[i].less(op.Data[j], orders)
+			if less {
+				count++
+			}
+			return less
+		},
 	)
+
+	err = applyGas(ctx, in.GasFunc, count)
 	return
 }
 
@@ -1549,6 +1637,8 @@ func opFilter(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = op2
+
+	err = applyGas(ctx, in.GasFunc, op2.elementCount())
 	return
 }
 
@@ -1583,6 +1673,8 @@ func opCast(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = op2
+
+	err = applyGas(ctx, in.GasFunc, op2.bytesCount())
 	return
 }
 
@@ -1797,11 +1889,15 @@ func opConcat(ctx *common.Context, in Instruction) (err error) {
 	op3 := op.clone(true)
 	op3.Data = make([]Tuple, len(op.Data))
 
+	var count uint64
 	for i := 0; i < len(op.Data); i++ {
 		op3.Data[i] = op.Data[i].concat(op2.Data[i])
+		count += uint64(len(op2.Data[i]))
 	}
 
 	in.Registers[in.Output] = op3
+
+	err = applyGas(ctx, in.GasFunc, count)
 	return
 }
 
@@ -1838,6 +1934,8 @@ func opNeg(ctx *common.Context, in Instruction) (err error) {
 	}
 
 	in.Registers[in.Output] = op2
+
+	err = applyGas(ctx, in.GasFunc, op2.elementCount())
 	return
 }
 
@@ -1924,5 +2022,10 @@ func opRepeatPK(ctx *common.Context, in Instruction) (err error) {
 	}
 	IDs := ctx.Storage.RepeatPK(ctx.Contract.Address(), tableRef)
 	in.Registers[in.Output], err = uint64ToOperands(IDs)
+	if err != nil {
+		return
+	}
+
+	err = applyGas(ctx, in.GasFunc, in.Registers[in.Output].elementCount())
 	return
 }

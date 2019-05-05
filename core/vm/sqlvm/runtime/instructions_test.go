@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"encoding/hex"
+	"math"
 	"math/big"
 	"reflect"
 	"testing"
@@ -411,6 +412,7 @@ func (s *opLoadSuite) TestOpLoad() {
 			Input:     input,
 			Registers: reg,
 			Output:    t.outputIdx,
+			GasFunc:   (jumpTable[REPEATPK]).GasFunc,
 		}
 		err := opLoad(s.ctx, in)
 
@@ -476,6 +478,7 @@ func (s opRepeatPKSuite) TestRepeatPK() {
 		address := t.address
 		ctx.Contract = vm.NewContract(vm.AccountRef(address),
 			vm.AccountRef(address), new(big.Int), uint64(0))
+		ctx.GasLimit = math.MaxUint64
 		reg := s.newRegisters(t.tableRef)
 		input := newInput([]int{1})
 		loadRegister(input, reg)
@@ -483,6 +486,7 @@ func (s opRepeatPKSuite) TestRepeatPK() {
 			Input:     input,
 			Registers: reg,
 			Output:    0,
+			GasFunc:   (jumpTable[REPEATPK]).GasFunc,
 		}
 		err := opRepeatPK(ctx, in)
 		s.Require().Equalf(t.expectedErr, err, "testcase: [%v]", t.title)
@@ -524,6 +528,7 @@ type instructionSuite struct {
 func (s *instructionSuite) run(testcases []opTestcase, opfunc OpFunction) {
 	for idx, c := range testcases {
 		c.In.Registers = make([]*Operand, len(c.In.Input))
+		c.In.GasFunc = jumpTable[c.In.Op].GasFunc
 
 		for i, j := 0, 0; i < len(c.In.Input); i++ {
 			if !c.In.Input[i].IsImmediate {
@@ -533,7 +538,12 @@ func (s *instructionSuite) run(testcases []opTestcase, opfunc OpFunction) {
 		}
 
 		err := opfunc(
-			&common.Context{Opt: common.Option{SafeMath: true}},
+			&common.Context{
+				Opt: common.Option{SafeMath: true},
+				Context: vm.Context{
+					GasLimit: math.MaxUint64,
+				},
+			},
 			c.In,
 		)
 		s.Require().Equal(
