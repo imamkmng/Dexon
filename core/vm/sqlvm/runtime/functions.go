@@ -160,6 +160,8 @@ func fnBlockHash(ctx *common.Context, in Instruction, length uint64) (result *Op
 			result.Data[i] = Tuple{r}
 		}
 	}
+
+	err = applyGas(ctx, in.GasFunc, result.elementCount())
 	return
 }
 
@@ -169,6 +171,7 @@ func fnBlockNumber(ctx *common.Context, in Instruction, length uint64) (result *
 		[]ast.DataType{ast.ComposeDataType(ast.DataTypeMajorUint, 31)},
 		r.clone, length,
 	)
+	err = applyGas(ctx, in.GasFunc, result.elementCount())
 	return
 }
 
@@ -178,6 +181,7 @@ func fnBlockTimestamp(ctx *common.Context, in Instruction, length uint64) (resul
 		[]ast.DataType{ast.ComposeDataType(ast.DataTypeMajorUint, 31)},
 		r.clone, length,
 	)
+	err = applyGas(ctx, in.GasFunc, result.elementCount())
 	return
 }
 
@@ -187,6 +191,7 @@ func fnBlockCoinBase(ctx *common.Context, in Instruction, length uint64) (result
 		[]ast.DataType{ast.ComposeDataType(ast.DataTypeMajorAddress, 0)},
 		r.clone, length,
 	)
+	err = applyGas(ctx, in.GasFunc, result.elementCount())
 	return
 }
 
@@ -204,6 +209,7 @@ func fnBlockGasLimit(ctx *common.Context, in Instruction, length uint64) (result
 		[]ast.DataType{ast.ComposeDataType(ast.DataTypeMajorUint, 7)},
 		r.clone, length,
 	)
+	err = applyGas(ctx, in.GasFunc, result.elementCount())
 	return
 }
 
@@ -213,6 +219,7 @@ func fnMsgSender(ctx *common.Context, in Instruction, length uint64) (result *Op
 		[]ast.DataType{ast.ComposeDataType(ast.DataTypeMajorAddress, 0)},
 		r.clone, length,
 	)
+	err = applyGas(ctx, in.GasFunc, result.elementCount())
 	return
 }
 
@@ -222,6 +229,7 @@ func fnMsgData(ctx *common.Context, in Instruction, length uint64) (result *Oper
 		[]ast.DataType{ast.ComposeDataType(ast.DataTypeMajorDynamicBytes, 0)},
 		r.clone, length,
 	)
+	err = applyGas(ctx, in.GasFunc, result.bytesCount())
 	return
 }
 
@@ -231,6 +239,7 @@ func fnTxOrigin(ctx *common.Context, in Instruction, length uint64) (result *Ope
 		[]ast.DataType{ast.ComposeDataType(ast.DataTypeMajorAddress, 0)},
 		r.clone, length,
 	)
+	err = applyGas(ctx, in.GasFunc, result.bytesCount())
 	return
 }
 
@@ -259,6 +268,7 @@ func fnRand(ctx *common.Context, in Instruction, length uint64) (result *Operand
 		[]ast.DataType{ast.ComposeDataType(ast.DataTypeMajorUint, 31)},
 		fn, length,
 	)
+	err = applyGas(ctx, in.GasFunc, result.bytesCount())
 	return
 }
 
@@ -351,6 +361,7 @@ func fnBitAnd(ctx *common.Context, in Instruction, length uint64) (result *Opera
 			func(b1, b2 byte) byte { return b1 & b2 },
 		)
 	}
+	err = applyGas(ctx, in.GasFunc, result.elementCount())
 	return
 }
 
@@ -395,6 +406,7 @@ func fnBitOr(ctx *common.Context, in Instruction, length uint64) (result *Operan
 			func(b1, b2 byte) byte { return b1 | b2 },
 		)
 	}
+	err = applyGas(ctx, in.GasFunc, result.elementCount())
 	return
 }
 
@@ -413,6 +425,7 @@ func fnBitXor(ctx *common.Context, in Instruction, length uint64) (result *Opera
 			func(b1, b2 byte) byte { return b1 ^ b2 },
 		)
 	}
+	err = applyGas(ctx, in.GasFunc, result.elementCount())
 	return
 }
 
@@ -438,6 +451,7 @@ func fnBitNot(ctx *common.Context, in Instruction, length uint64) (result *Opera
 			func(b byte) byte { return ^b },
 		)
 	}
+	err = applyGas(ctx, in.GasFunc, result.elementCount())
 	return
 }
 
@@ -492,6 +506,8 @@ func fnOctetLength(ctx *common.Context, in Instruction, length uint64) (result *
 			result.Data[i][j] = &Raw{Value: decimal.New(int64(len(op.Data[i][j].Bytes)), 0)}
 		}
 	}
+
+	err = applyGas(ctx, in.GasFunc, result.elementCount())
 	return
 }
 
@@ -553,5 +569,7 @@ func fnSubString(ctx *common.Context, in Instruction, length uint64) (result *Op
 			result.Data[i][j] = &Raw{Bytes: op.Data[i][j].Bytes[start : start+end]}
 		}
 	}
+
+	err = applyGas(ctx, in.GasFunc, result.bytesCount())
 	return
 }

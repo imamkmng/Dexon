@@ -65,9 +65,13 @@ func (s *FunctionSuite) TestFnBlockHash() {
 				Context: vm.Context{
 					GetHash:     mockGetHashFunc,
 					BlockNumber: c.Cur,
+					GasLimit:    math.MaxUint64,
 				},
 			},
-			Instruction{Input: c.Ops},
+			Instruction{
+				Input:   c.Ops,
+				GasFunc: fnTable[BLOCKHASH].GasFunc,
+			},
 			c.Length,
 		)
 	}
@@ -115,9 +119,12 @@ func (s *FunctionSuite) TestFnBlockNumber() {
 	callFn := func(c blockNumberCase) (*Operand, error) {
 		return fnBlockNumber(
 			&common.Context{
-				Context: vm.Context{BlockNumber: c.RawNum},
+				Context: vm.Context{
+					BlockNumber: c.RawNum,
+					GasLimit:    math.MaxUint64,
+				},
 			},
-			Instruction{},
+			Instruction{GasFunc: fnTable[BLOCKNUMBER].GasFunc},
 			c.Length)
 	}
 
@@ -171,9 +178,12 @@ func (s *FunctionSuite) TestFnBlockTimestamp() {
 	callFn := func(c blockTimestampCase) (*Operand, error) {
 		return fnBlockTimestamp(
 			&common.Context{
-				Context: vm.Context{Time: c.Timestamp},
+				Context: vm.Context{
+					Time:     c.Timestamp,
+					GasLimit: math.MaxUint64,
+				},
 			},
-			Instruction{},
+			Instruction{GasFunc: fnTable[BLOCKTIMESTAMP].GasFunc},
 			c.Length)
 	}
 
@@ -231,9 +241,12 @@ func (s *FunctionSuite) TestFnCoinBase() {
 	callFn := func(c blockCoinBaseCase) (*Operand, error) {
 		return fnBlockCoinBase(
 			&common.Context{
-				Context: vm.Context{Coinbase: c.Address},
+				Context: vm.Context{
+					Coinbase: c.Address,
+					GasLimit: math.MaxUint64,
+				},
 			},
-			Instruction{},
+			Instruction{GasFunc: fnTable[BLOCKCOINBASE].GasFunc},
 			c.Length)
 	}
 
@@ -279,7 +292,7 @@ func (s *FunctionSuite) TestFnGasLimit() {
 			&common.Context{
 				Context: vm.Context{GasLimit: c.Limit},
 			},
-			Instruction{},
+			Instruction{GasFunc: fnTable[BLOCKGASLIMIT].GasFunc},
 			c.Length)
 	}
 
@@ -330,9 +343,10 @@ func (s *FunctionSuite) TestFnMsgSender() {
 	callFn := func(c txMsgSenderCase) (*Operand, error) {
 		return fnMsgSender(
 			&common.Context{
+				Context:  vm.Context{GasLimit: math.MaxUint64},
 				Contract: &vm.Contract{CallerAddress: c.Address},
 			},
-			Instruction{},
+			Instruction{GasFunc: fnTable[MSGSENDER].GasFunc},
 			c.Length)
 	}
 
@@ -381,9 +395,10 @@ func (s *FunctionSuite) TestFnMsgData() {
 	callFn := func(c txMsgDataCase) (*Operand, error) {
 		return fnMsgData(
 			&common.Context{
+				Context:  vm.Context{GasLimit: math.MaxUint64},
 				Contract: &vm.Contract{Input: c.Res},
 			},
-			Instruction{},
+			Instruction{GasFunc: fnTable[MSGDATA].GasFunc},
 			c.Length)
 	}
 
@@ -434,9 +449,12 @@ func (s *FunctionSuite) TestFnTxOrigin() {
 	callFn := func(c blockTxOriginCase) (*Operand, error) {
 		return fnTxOrigin(
 			&common.Context{
-				Context: vm.Context{Origin: c.Address},
+				Context: vm.Context{
+					Origin:   c.Address,
+					GasLimit: math.MaxUint64,
+				},
 			},
-			Instruction{},
+			Instruction{GasFunc: fnTable[TXORIGIN].GasFunc},
 			c.Length)
 	}
 
@@ -485,10 +503,14 @@ func (s *FunctionSuite) TestFnRand() {
 	callFn := func(c blockRandCase) (*Operand, error) {
 		return fnRand(
 			&common.Context{
-				Context: vm.Context{Origin: c.Origin, Randomness: res},
+				Context: vm.Context{
+					Origin:     c.Origin,
+					Randomness: res,
+					GasLimit:   math.MaxUint64,
+				},
 				Storage: newStorage(),
 			},
-			Instruction{},
+			Instruction{GasFunc: fnTable[RAND].GasFunc},
 			c.Length)
 	}
 
