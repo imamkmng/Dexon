@@ -466,7 +466,7 @@ func (mgr *agreementMgr) runBA(initRound uint64) {
 			currentRound = nextRound
 			nextRound++
 		}()
-		// Wait until the configuartion for next round is ready.
+		// Wait until the configuration for next round is ready.
 		for {
 			if setting = mgr.generateSetting(nextRound); setting != nil {
 				break

@@ -31,7 +31,7 @@ type configReader interface {
 	Configuration(round uint64) *types.Config
 }
 
-// WatchCat is reponsible for signaling if syncer object should be terminated.
+// WatchCat is responsible for signaling if syncer object should be terminated.
 type WatchCat struct {
 	recovery     core.Recovery
 	timeout      time.Duration

@@ -356,7 +356,7 @@ func (recv *consensusBAReceiver) ConfirmBlock(
 					"parent-hash", block.ParentHash.String()[:6],
 					"cur-position", block.Position)
 				if !block.IsFinalized() {
-					// TODO(jimmy): use a seperate message to pull finalized
+					// TODO(jimmy): use a separate message to pull finalized
 					// block. Here, we pull it again as workaround.
 					continue
 				}

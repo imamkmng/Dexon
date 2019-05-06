@@ -152,7 +152,7 @@ func (m *DefaultMarshaller) Marshal(
 		payload, err = json.Marshal(msg)
 	default:
 		if m.fallback == nil {
-			err = fmt.Errorf("unknwon message type: %v", msg)
+			err = fmt.Errorf("unknown message type: %v", msg)
 			break
 		}
 		msgType, payload, err = m.fallback.Marshal(msg)

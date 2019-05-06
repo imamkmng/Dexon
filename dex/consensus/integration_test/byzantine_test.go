@@ -213,7 +213,7 @@ func (s *ByzantineTestSuite) TestOneNodeWithoutVote() {
 		peerCount  = 4
 		dMoment    = time.Now().UTC()
 		untilRound = uint64(3)
-		tolerence  = uint64(2)
+		tolerance  = uint64(2)
 	)
 	if testing.Short() {
 		untilRound = 2
@@ -252,7 +252,7 @@ Loop:
 			if otherPos.Newer(latestPos) {
 				fmt.Println("otherPos", n.ID, &otherPos)
 				s.Require().True(
-					otherPos.Height-latestPos.Height <= tolerence)
+					otherPos.Height-latestPos.Height <= tolerance)
 			}
 		}
 		if latestPos.Round < untilRound {

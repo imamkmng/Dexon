@@ -94,7 +94,7 @@ func NewMemBackedDB(persistantFilePath ...string) (
 	return
 }
 
-// HasBlock returns wheter or not the DB has a block identified with the hash.
+// HasBlock returns whether or not the DB has a block identified with the hash.
 func (m *MemBackedDB) HasBlock(hash common.Hash) bool {
 	m.blocksLock.RLock()
 	defer m.blocksLock.RUnlock()

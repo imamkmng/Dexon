@@ -35,7 +35,7 @@ import (
 // TODO(mission): add a method to compare config/crs between governance
 //                instances.
 
-// Governance is an implementation of Goverance for testing purpose.
+// Governance is an implementation of Governance for testing purpose.
 type Governance struct {
 	roundShift           uint64
 	configs              []*types.Config

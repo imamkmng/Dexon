@@ -115,7 +115,7 @@ type agreementData struct {
 	blocksLock   sync.Mutex
 }
 
-// agreement is the agreement protocal describe in the Crypto Shuffle Algorithm.
+// agreement is the agreement protocol describe in the Crypto Shuffle Algorithm.
 type agreement struct {
 	state                  agreementState
 	data                   *agreementData
