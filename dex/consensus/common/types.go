@@ -33,7 +33,7 @@ const (
 type Hash [HashLength]byte
 
 func (h Hash) String() string {
-	return hex.EncodeToString([]byte(h[:]))
+	return hex.EncodeToString(h[:])
 }
 
 // Bytes return the hash as slice of bytes.

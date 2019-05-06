@@ -56,7 +56,7 @@ func (v NodeIDs) Len() int {
 }
 
 func (v NodeIDs) Less(i int, j int) bool {
-	return bytes.Compare([]byte(v[i].Hash[:]), []byte(v[j].Hash[:])) == -1
+	return bytes.Compare(v[i].Hash[:], v[j].Hash[:]) == -1
 }
 
 func (v NodeIDs) Swap(i int, j int) {

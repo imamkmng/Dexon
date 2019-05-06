@@ -58,7 +58,7 @@ func (sig Signature) Clone() Signature {
 }
 
 func (sig Signature) String() string {
-	return hex.EncodeToString([]byte(sig.Signature[:]))
+	return hex.EncodeToString(sig.Signature[:])
 }
 
 // RegisterSigToPub registers a sigToPub function of type.

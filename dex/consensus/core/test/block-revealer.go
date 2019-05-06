@@ -73,7 +73,7 @@ func NewBlockRevealerByPosition(iter db.BlockIterator, startHeight uint64) (
 		}
 		blocks = append(blocks, b)
 	}
-	sort.Sort(types.BlocksByPosition(blocks))
+	sort.Sort(blocks)
 	// Make sure the height of blocks are incremental with step 1.
 	for idx, b := range blocks {
 		if idx == 0 {

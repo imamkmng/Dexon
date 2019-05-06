@@ -43,7 +43,7 @@ func RecoverSignature(sigs []PartialSignature, signerIDs IDs) (
 		if len(sig.Signature) == 0 {
 			return crypto.Signature{}, ErrEmptySignature
 		}
-		if err := blsSigs[i].Deserialize([]byte(sig.Signature)); err != nil {
+		if err := blsSigs[i].Deserialize(sig.Signature); err != nil {
 			return crypto.Signature{}, err
 		}
 	}

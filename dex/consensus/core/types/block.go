@@ -259,7 +259,7 @@ func (b ByHash) Len() int {
 }
 
 func (b ByHash) Less(i int, j int) bool {
-	return bytes.Compare([]byte(b[i].Hash[:]), []byte(b[j].Hash[:])) == -1
+	return bytes.Compare(b[i].Hash[:], b[j].Hash[:]) == -1
 }
 
 func (b ByHash) Swap(i int, j int) {
