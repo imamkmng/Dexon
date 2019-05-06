@@ -898,7 +898,7 @@ func (t *TCPTransport) handleThroughputData(msg interface{}, payload []byte) {
 	recordType := ""
 	switch msg.(type) {
 	case *types.Vote:
-		recordType = "vote"
+		recordType = voteType
 	case *types.Block:
 		recordType = "block"
 	case *types.AgreementResult:

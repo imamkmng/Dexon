@@ -25,6 +25,11 @@ import (
 	typesDKG "github.com/dexon-foundation/dexon/dex/consensus/core/types/dkg"
 )
 
+const (
+	voteType  = "vote"
+	blockType = "block"
+)
+
 // DefaultMarshaller is the default marshaller for testing core.Consensus.
 type DefaultMarshaller struct {
 	fallback Marshaller
@@ -41,13 +46,13 @@ func NewDefaultMarshaller(fallback Marshaller) *DefaultMarshaller {
 func (m *DefaultMarshaller) Unmarshal(
 	msgType string, payload []byte) (msg interface{}, err error) {
 	switch msgType {
-	case "block":
+	case blockType:
 		block := &types.Block{}
 		if err = json.Unmarshal(payload, block); err != nil {
 			break
 		}
 		msg = block
-	case "vote":
+	case voteType:
 		vote := &types.Vote{}
 		if err = json.Unmarshal(payload, vote); err != nil {
 			break
@@ -116,10 +121,10 @@ func (m *DefaultMarshaller) Marshal(
 	msg interface{}) (msgType string, payload []byte, err error) {
 	switch msg.(type) {
 	case *types.Block:
-		msgType = "block"
+		msgType = blockType
 		payload, err = json.Marshal(msg)
 	case *types.Vote:
-		msgType = "vote"
+		msgType = voteType
 		payload, err = json.Marshal(msg)
 	case *types.AgreementResult:
 		msgType = "agreement-result"

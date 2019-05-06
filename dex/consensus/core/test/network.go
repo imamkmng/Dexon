@@ -77,9 +77,9 @@ func (req *PullRequest) MarshalJSON() (b []byte, err error) {
 	var idAsBytes []byte
 	// Make sure caller prepare correct identity for pull requests.
 	switch req.Type {
-	case "block":
+	case blockType:
 		idAsBytes, err = json.Marshal(req.Identity.(common.Hashes))
-	case "vote":
+	case voteType:
 		idAsBytes, err = json.Marshal(req.Identity.(types.Position))
 	default:
 		err = fmt.Errorf("unknown ID type for pull request: %v", req.Type)
@@ -107,13 +107,13 @@ func (req *PullRequest) UnmarshalJSON(data []byte) (err error) {
 	}
 	var ID interface{}
 	switch rawReq.Type {
-	case "block":
+	case blockType:
 		hashes := common.Hashes{}
 		if err = json.Unmarshal(rawReq.Identity, &hashes); err != nil {
 			break
 		}
 		ID = hashes
-	case "vote":
+	case voteType:
 		pos := types.Position{}
 		if err = json.Unmarshal(rawReq.Identity, &pos); err != nil {
 			break
@@ -432,7 +432,7 @@ func (n *Network) dispatchMsg(e *TransportEnvelope) {
 
 func (n *Network) handlePullRequest(req *PullRequest) {
 	switch req.Type {
-	case "block":
+	case blockType:
 		hashes := req.Identity.(common.Hashes)
 		func() {
 			n.blockCacheLock.Lock()
@@ -451,7 +451,7 @@ func (n *Network) handlePullRequest(req *PullRequest) {
 				n.send(req.Requester, b)
 			}
 		}()
-	case "vote":
+	case voteType:
 		pos := req.Identity.(types.Position)
 		func() {
 			n.voteCacheLock.Lock()
@@ -573,7 +573,7 @@ func (n *Network) pullBlocksAsync(hashes common.Hashes) {
 	}()
 	req := &PullRequest{
 		Requester: n.ID,
-		Type:      "block",
+		Type:      blockType,
 		Identity:  hashes,
 	}
 	// Randomly pick peers to send pull requests.
