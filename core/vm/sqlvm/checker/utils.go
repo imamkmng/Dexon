@@ -460,6 +460,23 @@ var _ typeAction = typeActionInferDefault{}
 
 func (typeActionInferDefault) ˉtypeAction() {}
 
+// typeActionInferWithSize requests the node to infer the type with size
+// requirement. The size is measured in bytes. It is indented to be used in
+// CAST to support conversion between integer and fixed-size bytes types.
+// It is an advisory request. If the type is already determined, the request is
+// ignored and the parent node should be able to handle the problem by itself.
+type typeActionInferWithSize struct {
+	size int
+}
+
+func newTypeActionInferWithSize(bytes int) typeActionInferWithSize {
+	return typeActionInferWithSize{size: bytes}
+}
+
+var _ typeAction = typeActionInferWithSize{}
+
+func (typeActionInferWithSize) ˉtypeAction() {}
+
 // typeActionInferWithMajor requests the node to infer the type with preference
 // to a specific major type. It usually that the parent node cares the major
 // type but does not care the size of it. It is an advisory request. If it is
@@ -479,23 +496,6 @@ func newTypeActionInferWithMajor(category ast.DataTypeMajor,
 var _ typeAction = typeActionInferWithMajor{}
 
 func (typeActionInferWithMajor) ˉtypeAction() {}
-
-// typeActionInferWithSize requests the node to infer the type with size
-// requirement. The size is measured in bytes. It is indented to be used in
-// CAST to support conversion between integer and fixed-size bytes types.
-// It is an advisory request. If the type is already determined, the request is
-// ignored and the parent node should be able to handle the problem by itself.
-type typeActionInferWithSize struct {
-	size int
-}
-
-func newTypeActionInferWithSize(bytes int) typeActionInferWithSize {
-	return typeActionInferWithSize{size: bytes}
-}
-
-var _ typeAction = typeActionInferWithSize{}
-
-func (typeActionInferWithSize) ˉtypeAction() {}
 
 // typeActionAssign requests the node to have a specific type. It is a
 // mandatory request. If the node is unable to meet the requirement, it should

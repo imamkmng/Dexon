@@ -208,8 +208,8 @@ func checkVariable(n *ast.IdentifierNode,
 	dt := s[tr].Columns[cr].Type
 	switch a := ta.(type) {
 	case typeActionInferDefault:
-	case typeActionInferWithMajor:
 	case typeActionInferWithSize:
+	case typeActionInferWithMajor:
 	case typeActionAssign:
 		if !dt.Equal(a.dt) {
 			elAppendTypeErrorAssignDataType(el, n, fn, a.dt, dt)
@@ -266,8 +266,8 @@ func checkBoolValue(n *ast.BoolValueNode,
 
 	switch a := ta.(type) {
 	case typeActionInferDefault:
-	case typeActionInferWithMajor:
 	case typeActionInferWithSize:
+	case typeActionInferWithMajor:
 	case typeActionAssign:
 		major, _ := ast.DecomposeDataType(a.dt)
 		if major != ast.DataTypeMajorBool {
@@ -285,8 +285,8 @@ func checkAddressValue(n *ast.AddressValueNode,
 
 	switch a := ta.(type) {
 	case typeActionInferDefault:
-	case typeActionInferWithMajor:
 	case typeActionInferWithSize:
+	case typeActionInferWithMajor:
 	case typeActionAssign:
 		major, _ := ast.DecomposeDataType(a.dt)
 		if major != ast.DataTypeMajorAddress {
@@ -441,6 +441,8 @@ func checkIntegerValue(n *ast.IntegerValueNode,
 	}
 
 	dt := ast.DataTypePending
+
+executeTypeAction:
 	switch a := ta.(type) {
 	case typeActionInferDefault:
 		// Default to int256 or uint256.
@@ -456,6 +458,33 @@ func checkIntegerValue(n *ast.IntegerValueNode,
 		if !ok {
 			return nil
 		}
+
+	case typeActionInferWithMajor:
+		switch a.major {
+		case ast.DataTypeMajorAddress:
+			// address.
+			major := a.major
+			minor := ast.DataTypeMinorDontCare
+			dt = ast.ComposeDataType(major, minor)
+			ta = newTypeActionAssign(dt)
+		case ast.DataTypeMajorInt,
+			ast.DataTypeMajorUint:
+			// int256 and uint256.
+			major := a.major
+			minor := ast.DataTypeMinor(256/8 - 1)
+			dt = ast.ComposeDataType(major, minor)
+			ta = newTypeActionAssign(dt)
+		case ast.DataTypeMajorFixed,
+			ast.DataTypeMajorUfixed:
+			// fixed128x18 and ufixed128x18.
+			major := a.major + (128/8 - 1)
+			minor := ast.DataTypeMinor(18)
+			dt = ast.ComposeDataType(major, minor)
+			ta = newTypeActionAssign(dt)
+		default:
+			ta = newTypeActionInferDefault()
+		}
+		goto executeTypeAction
 
 	case typeActionAssign:
 		dt = a.dt
@@ -577,6 +606,8 @@ func checkDecimalValue(n *ast.DecimalValueNode,
 
 	// Now we are sure the number we are dealing has fractional part.
 	dt := ast.DataTypePending
+
+executeTypeAction:
 	switch a := ta.(type) {
 	case typeActionInferDefault:
 		// Default to fixed128x18 and ufixed128x18.
@@ -594,6 +625,27 @@ func checkDecimalValue(n *ast.DecimalValueNode,
 		if !ok {
 			return nil
 		}
+
+	case typeActionInferWithMajor:
+		switch a.major {
+		case ast.DataTypeMajorFixed,
+			ast.DataTypeMajorUfixed:
+			// fixed128x18 and ufixed128x18.
+			major := a.major + (128/8 - 1)
+			minor := ast.DataTypeMinor(18)
+			dt = ast.ComposeDataType(major, minor)
+			ta = newTypeActionAssign(dt)
+		case ast.DataTypeMajorInt,
+			ast.DataTypeMajorUint:
+			// int256 and uint256.
+			major := a.major
+			minor := ast.DataTypeMinor(256/8 - 1)
+			dt = ast.ComposeDataType(major, minor)
+			ta = newTypeActionAssign(dt)
+		default:
+			ta = newTypeActionInferDefault()
+		}
+		goto executeTypeAction
 
 	case typeActionAssign:
 		dt = a.dt
@@ -661,6 +713,13 @@ executeTypeAction:
 		ta = newTypeActionAssign(dt)
 		goto executeTypeAction
 
+	case typeActionInferWithSize:
+		major := ast.DataTypeMajorFixedBytes
+		minor := ast.DataTypeMinor(a.size - 1)
+		dt = ast.ComposeDataType(major, minor)
+		ta = newTypeActionAssign(dt)
+		goto executeTypeAction
+
 	case typeActionInferWithMajor:
 		switch a.major {
 		case ast.DataTypeMajorFixedBytes:
@@ -682,18 +741,12 @@ executeTypeAction:
 			dt = ast.ComposeDataType(a.major, minor)
 			ta = newTypeActionAssign(dt)
 		case ast.DataTypeMajorDynamicBytes:
-			dt = ast.ComposeDataType(a.major, ast.DataTypeMinorDontCare)
+			minor := ast.DataTypeMinorDontCare
+			dt = ast.ComposeDataType(a.major, minor)
 			ta = newTypeActionAssign(dt)
 		default:
 			ta = newTypeActionInferDefault()
 		}
-		goto executeTypeAction
-
-	case typeActionInferWithSize:
-		major := ast.DataTypeMajorFixedBytes
-		minor := ast.DataTypeMinor(a.size - 1)
-		dt = ast.ComposeDataType(major, minor)
-		ta = newTypeActionAssign(dt)
 		goto executeTypeAction
 
 	case typeActionAssign:
@@ -741,9 +794,9 @@ func checkNullValue(n *ast.NullValueNode,
 	switch a := ta.(type) {
 	case typeActionInferDefault:
 		dt = ast.DataTypeNull
-	case typeActionInferWithMajor:
-		dt = ast.DataTypeNull
 	case typeActionInferWithSize:
+		dt = ast.DataTypeNull
+	case typeActionInferWithMajor:
 		dt = ast.DataTypeNull
 	case typeActionAssign:
 		dt = a.dt
@@ -891,12 +944,12 @@ func checkPosOperator(n *ast.PosOperatorNode,
 			r = checkExpr(r, s, o, c, el, tr, ta)
 		}
 
-	case typeActionInferWithMajor:
+	case typeActionInferWithSize:
 		if dt.Pending() {
 			r = checkExpr(r, s, o, c, el, tr, ta)
 		}
 
-	case typeActionInferWithSize:
+	case typeActionInferWithMajor:
 		if dt.Pending() {
 			r = checkExpr(r, s, o, c, el, tr, ta)
 		}
@@ -994,12 +1047,12 @@ func checkNegOperator(n *ast.NegOperatorNode,
 			r = checkExpr(r, s, o, c, el, tr, ta)
 		}
 
-	case typeActionInferWithMajor:
+	case typeActionInferWithSize:
 		if dt.Pending() {
 			r = checkExpr(r, s, o, c, el, tr, ta)
 		}
 
-	case typeActionInferWithSize:
+	case typeActionInferWithMajor:
 		if dt.Pending() {
 			r = checkExpr(r, s, o, c, el, tr, ta)
 		}
@@ -1087,8 +1140,8 @@ func checkNotOperator(n *ast.NotOperatorNode,
 
 	switch a := ta.(type) {
 	case typeActionInferDefault:
-	case typeActionInferWithMajor:
 	case typeActionInferWithSize:
+	case typeActionInferWithMajor:
 	case typeActionAssign:
 		if !dt.Equal(a.dt) {
 			elAppendTypeErrorAssignDataType(el, n, fn, a.dt, dt)
@@ -1171,8 +1224,8 @@ func checkAndOperator(n *ast.AndOperatorNode,
 
 	switch a := ta.(type) {
 	case typeActionInferDefault:
-	case typeActionInferWithMajor:
 	case typeActionInferWithSize:
+	case typeActionInferWithMajor:
 	case typeActionAssign:
 		if !dt.Equal(a.dt) {
 			elAppendTypeErrorAssignDataType(el, n, fn, a.dt, dt)
@@ -1243,8 +1296,8 @@ func checkOrOperator(n *ast.OrOperatorNode,
 
 	switch a := ta.(type) {
 	case typeActionInferDefault:
-	case typeActionInferWithMajor:
 	case typeActionInferWithSize:
+	case typeActionInferWithMajor:
 	case typeActionAssign:
 		if !dt.Equal(a.dt) {
 			elAppendTypeErrorAssignDataType(el, n, fn, a.dt, dt)
@@ -1541,8 +1594,8 @@ func checkRelationalOperator(n ast.BinaryOperator,
 
 	switch a := ta.(type) {
 	case typeActionInferDefault:
-	case typeActionInferWithMajor:
 	case typeActionInferWithSize:
+	case typeActionInferWithMajor:
 	case typeActionAssign:
 		if !dt.Equal(a.dt) {
 			elAppendTypeErrorAssignDataType(el, n, fn, a.dt, dt)
@@ -1997,12 +2050,12 @@ func checkConcatOperator(n *ast.ConcatOperatorNode,
 			r = checkExpr(r, s, o, c, el, tr, ta)
 		}
 
-	case typeActionInferWithMajor:
+	case typeActionInferWithSize:
 		if dt.Pending() {
 			r = checkExpr(r, s, o, c, el, tr, ta)
 		}
 
-	case typeActionInferWithSize:
+	case typeActionInferWithMajor:
 		if dt.Pending() {
 			r = checkExpr(r, s, o, c, el, tr, ta)
 		}
