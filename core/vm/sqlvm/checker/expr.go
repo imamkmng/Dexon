@@ -77,19 +77,19 @@ func checkExpr(n ast.ExprNode,
 		return checkConcatOperator(n, s, o, c, el, tr, ta)
 
 	case *ast.AddOperatorNode:
-		return n
+		return checkAddOperator(n, s, o, c, el, tr, ta)
 
 	case *ast.SubOperatorNode:
-		return n
+		return checkSubOperator(n, s, o, c, el, tr, ta)
 
 	case *ast.MulOperatorNode:
-		return n
+		return checkMulOperator(n, s, o, c, el, tr, ta)
 
 	case *ast.DivOperatorNode:
-		return n
+		return checkDivOperator(n, s, o, c, el, tr, ta)
 
 	case *ast.ModOperatorNode:
-		return n
+		return checkModOperator(n, s, o, c, el, tr, ta)
 
 	case *ast.IsOperatorNode:
 		return n
@@ -326,7 +326,7 @@ func cropDecimal(dt ast.DataType, d decimal.Decimal) decimal.Decimal {
 	return mustDecimalDecode(dt, b)
 }
 
-func elAppendConstantTooLongError(el *errors.ErrorList, n ast.Valuer,
+func elAppendConstantTooLongError(el *errors.ErrorList, n ast.ExprNode,
 	fn string, v decimal.Decimal) {
 
 	el.Append(errors.Error{
@@ -342,7 +342,7 @@ func elAppendConstantTooLongError(el *errors.ErrorList, n ast.Valuer,
 	}, nil)
 }
 
-func elAppendOverflowError(el *errors.ErrorList, n ast.Valuer,
+func elAppendOverflowError(el *errors.ErrorList, n ast.ExprNode,
 	fn string, dt ast.DataType, v, min, max decimal.Decimal) {
 
 	el.Append(errors.Error{
@@ -370,7 +370,7 @@ func elAppendOverflowError(el *errors.ErrorList, n ast.Valuer,
 	}, nil)
 }
 
-func elAppendOverflowWarning(el *errors.ErrorList, n ast.Valuer,
+func elAppendOverflowWarning(el *errors.ErrorList, n ast.ExprNode,
 	fn string, dt ast.DataType, from, to decimal.Decimal) {
 
 	el.Append(errors.Error{
@@ -989,7 +989,7 @@ func checkNegOperator(n *ast.NegOperatorNode,
 	n.SetType(dtTarget)
 	dt := n.GetType()
 
-	eval := func(n ast.Valuer, v decimal.Decimal) (decimal.Decimal, bool) {
+	calc := func(v decimal.Decimal) (decimal.Decimal, bool) {
 		r := v.Neg()
 		if !dt.Pending() {
 			min, max := mustGetMinMax(dt)
@@ -1014,14 +1014,14 @@ func checkNegOperator(n *ast.NegOperatorNode,
 		case extractNumberValueStatusInteger:
 			node := &ast.IntegerValueNode{}
 			node.IsAddress = false
-			node.V, ok = eval(node, v)
+			node.V, ok = calc(v)
 			if !ok {
 				return nil
 			}
 			r = node
 		case extractNumberValueStatusDecimal:
 			node := &ast.DecimalValueNode{}
-			node.V, ok = eval(node, v)
+			node.V, ok = calc(v)
 			if !ok {
 				return nil
 			}
@@ -2071,4 +2071,230 @@ func checkConcatOperator(n *ast.ConcatOperatorNode,
 		}
 	}
 	return r
+}
+
+func checkArithmeticBinaryOperator(n ast.BinaryOperator,
+	s schema.Schema, o CheckOptions, c *schemaCache, el *errors.ErrorList,
+	tr schema.TableRef, ta typeAction, fn, op string, division bool,
+	eval func(decimal.Decimal, decimal.Decimal) decimal.Decimal,
+) ast.ExprNode {
+
+	object := n.GetObject()
+	object = checkExpr(object, s, o, c, el, tr, nil)
+	if object == nil {
+		return nil
+	}
+	subject := n.GetSubject()
+	subject = checkExpr(subject, s, o, c, el, tr, nil)
+	if subject == nil {
+		return nil
+	}
+	n.SetObject(object)
+	n.SetSubject(subject)
+	r := ast.ExprNode(n)
+
+	dtObject := object.GetType()
+	if !validateNumberType(dtObject, el, object, fn, op) {
+		return nil
+	}
+	dtSubject := subject.GetType()
+	if !validateNumberType(dtSubject, el, subject, fn, op) {
+		return nil
+	}
+
+	if dt, ok := inferBinaryOperatorType(n, s, o, c, el, tr, fn, op); ok {
+		n.SetType(dt)
+	} else {
+		return nil
+	}
+	dt := n.GetType()
+
+	calc := func(v1, v2 decimal.Decimal) (decimal.Decimal, bool) {
+		r := eval(v1, v2)
+		if !dt.Pending() {
+			min, max := mustGetMinMax(dt)
+			if r.LessThan(min) || r.GreaterThan(max) {
+				if (o & CheckWithSafeMath) != 0 {
+					elAppendOverflowError(el, n, fn, dt, r, min, max)
+					return r, false
+				}
+			}
+			cropped := cropDecimal(dt, r)
+			elAppendOverflowWarning(el, n, fn, dt, r, cropped)
+			r = cropped
+		}
+		normalizeDecimal(&r)
+		if !safeDecimalRange(r) {
+			elAppendConstantTooLongError(el, n, fn, r)
+			return r, false
+		}
+		return r, true
+	}
+	if object, ok := object.(ast.Valuer); ok {
+		if subject, ok := subject.(ast.Valuer); ok {
+			null := false
+			decimal := false
+			v1, status := extractNumberValue(object, el, fn, op)
+			switch status {
+			case extractNumberValueStatusError:
+				return nil
+			case extractNumberValueStatusInteger:
+			case extractNumberValueStatusDecimal:
+				decimal = true
+			case extractNumberValueStatusNullWithType:
+				null = true
+			case extractNumberValueStatusNullWithoutType:
+				elAppendTypeErrorOperatorValueNode(el, object, fn, op)
+				return nil
+			default:
+				panic(fmt.Sprintf("unknown status %d", status))
+			}
+			v2, status := extractNumberValue(subject, el, fn, op)
+			switch status {
+			case extractNumberValueStatusError:
+				return nil
+			case extractNumberValueStatusInteger:
+			case extractNumberValueStatusDecimal:
+				decimal = true
+			case extractNumberValueStatusNullWithType:
+				null = true
+			case extractNumberValueStatusNullWithoutType:
+				elAppendTypeErrorOperatorValueNode(el, subject, fn, op)
+				return nil
+			default:
+				panic(fmt.Sprintf("unknown status %d", status))
+			}
+			if null {
+				node := &ast.NullValueNode{}
+				r = node
+			} else {
+				if division && v2.IsZero() {
+					el.Append(errors.Error{
+						Position: subject.GetPosition(),
+						Length:   subject.GetLength(),
+						Category: errors.ErrorCategorySemantic,
+						Code:     errors.ErrorCodeDividedByZero,
+						Severity: errors.ErrorSeverityError,
+						Prefix:   fn,
+						Message:  "division by zero",
+					}, nil)
+					return nil
+				}
+				vo, ok := calc(v1, v2)
+				if !ok {
+					return nil
+				}
+				if division || decimal {
+					node := &ast.DecimalValueNode{}
+					node.V = vo
+					r = node
+				} else {
+					node := &ast.IntegerValueNode{}
+					node.IsAddress = false
+					node.V = vo
+					r = node
+				}
+			}
+			r.SetPosition(n.GetPosition())
+			r.SetLength(n.GetLength())
+			r.SetToken(n.GetToken())
+			r.SetType(dt)
+		}
+	}
+
+	switch a := ta.(type) {
+	case typeActionInferDefault:
+		if dt.Pending() {
+			r = checkExpr(r, s, o, c, el, tr, ta)
+		}
+
+	case typeActionInferWithSize:
+		if dt.Pending() {
+			r = checkExpr(r, s, o, c, el, tr, ta)
+		}
+
+	case typeActionInferWithMajor:
+		if dt.Pending() {
+			r = checkExpr(r, s, o, c, el, tr, ta)
+		}
+
+	case typeActionAssign:
+		if dt.Pending() {
+			r = checkExpr(r, s, o, c, el, tr, ta)
+		} else {
+			if !dt.Equal(a.dt) {
+				elAppendTypeErrorAssignDataType(el, n, fn, a.dt, dt)
+				return nil
+			}
+		}
+	}
+	return r
+}
+
+func checkAddOperator(n *ast.AddOperatorNode,
+	s schema.Schema, o CheckOptions, c *schemaCache, el *errors.ErrorList,
+	tr schema.TableRef, ta typeAction) ast.ExprNode {
+
+	fn := "CheckAddOperator"
+	op := "binary operator +"
+
+	return checkArithmeticBinaryOperator(n, s, o, c, el, tr, ta, fn, op, false,
+		func(v1, v2 decimal.Decimal) decimal.Decimal {
+			return v1.Add(v2)
+		})
+}
+
+func checkSubOperator(n *ast.SubOperatorNode,
+	s schema.Schema, o CheckOptions, c *schemaCache, el *errors.ErrorList,
+	tr schema.TableRef, ta typeAction) ast.ExprNode {
+
+	fn := "CheckSubOperator"
+	op := "binary operator -"
+
+	return checkArithmeticBinaryOperator(n, s, o, c, el, tr, ta, fn, op, false,
+		func(v1, v2 decimal.Decimal) decimal.Decimal {
+			return v1.Sub(v2)
+		})
+}
+
+func checkMulOperator(n *ast.MulOperatorNode,
+	s schema.Schema, o CheckOptions, c *schemaCache, el *errors.ErrorList,
+	tr schema.TableRef, ta typeAction) ast.ExprNode {
+
+	fn := "CheckMulOperator"
+	op := "binary operator *"
+
+	return checkArithmeticBinaryOperator(n, s, o, c, el, tr, ta, fn, op, false,
+		func(v1, v2 decimal.Decimal) decimal.Decimal {
+			return v1.Mul(v2)
+		})
+}
+
+func checkDivOperator(n *ast.DivOperatorNode,
+	s schema.Schema, o CheckOptions, c *schemaCache, el *errors.ErrorList,
+	tr schema.TableRef, ta typeAction) ast.ExprNode {
+
+	fn := "CheckDivOperator"
+	op := "binary operator /"
+
+	return checkArithmeticBinaryOperator(n, s, o, c, el, tr, ta, fn, op, true,
+		func(v1, v2 decimal.Decimal) decimal.Decimal {
+			q, _ := v1.QuoRem(v2, MaxFractionalPartDigits)
+			return q
+		})
+}
+
+func checkModOperator(n *ast.ModOperatorNode,
+	s schema.Schema, o CheckOptions, c *schemaCache, el *errors.ErrorList,
+	tr schema.TableRef, ta typeAction) ast.ExprNode {
+
+	fn := "CheckModOperator"
+	op := "binary operator %"
+
+	return checkArithmeticBinaryOperator(n, s, o, c, el, tr, ta, fn, op, true,
+		func(v1, v2 decimal.Decimal) decimal.Decimal {
+			// FIXME: This is wrong. It needs the correct precision to work.
+			_, r := v1.QuoRem(v2, MaxFractionalPartDigits)
+			return r
+		})
 }
