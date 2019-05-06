@@ -41,8 +41,7 @@ const (
 	maxVoteCache        = 128
 
 	// Gossiping parameter.
-	maxAgreementResultBroadcast  = 3
-	gossipAgreementResultPercent = 33
+	maxAgreementResultBroadcast = 3
 )
 
 // NetworkType is the simulation network type.

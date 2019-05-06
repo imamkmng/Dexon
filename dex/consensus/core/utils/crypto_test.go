@@ -34,8 +34,6 @@ type CryptoTestSuite struct {
 	suite.Suite
 }
 
-var myNID = types.NodeID{Hash: common.NewRandomHash()}
-
 func (s *CryptoTestSuite) prepareBlock(prevBlock *types.Block) *types.Block {
 	now := time.Now().UTC()
 	if prevBlock == nil {
