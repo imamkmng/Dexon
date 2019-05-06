@@ -331,7 +331,7 @@ func (s *DKGTestSuite) TestPrivateKeySharesRLPEncodeDecode() {
 	privShares, _ := NewPrivateKeyShares(10)
 	privShares.shares = append(privShares.shares, PrivateKey{})
 	privShares.shareIndex = map[ID]int{
-		ID{}: 0,
+		{}: 0,
 	}
 
 	b, err := rlp.EncodeToBytes(privShares)

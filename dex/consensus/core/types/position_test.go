@@ -76,15 +76,15 @@ func (s *PositionTestSuite) TestOlder() {
 
 func (s *PositionTestSuite) TestSearchInAsendingOrder() {
 	positions := []Position{
-		Position{Round: 0, Height: 1},
-		Position{Round: 0, Height: 2},
-		Position{Round: 0, Height: 3},
-		Position{Round: 2, Height: 0},
-		Position{Round: 2, Height: 1},
-		Position{Round: 2, Height: 2},
-		Position{Round: 4, Height: 0},
-		Position{Round: 4, Height: 1},
-		Position{Round: 4, Height: 2},
+		{Round: 0, Height: 1},
+		{Round: 0, Height: 2},
+		{Round: 0, Height: 3},
+		{Round: 2, Height: 0},
+		{Round: 2, Height: 1},
+		{Round: 2, Height: 2},
+		{Round: 4, Height: 0},
+		{Round: 4, Height: 1},
+		{Round: 4, Height: 2},
 	}
 	search := func(pos Position) int {
 		return sort.Search(len(positions), func(i int) bool {

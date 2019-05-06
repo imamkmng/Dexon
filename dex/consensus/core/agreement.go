@@ -147,7 +147,7 @@ func newAgreement(
 			ID:     ID,
 			leader: leader,
 		},
-		aID: &atomic.Value{},
+		aID:                    &atomic.Value{},
 		pendingAgreementResult: make(map[types.Position]*types.AgreementResult),
 		candidateBlock:         make(map[common.Hash]*types.Block),
 		fastForward:            make(chan uint64, 1),

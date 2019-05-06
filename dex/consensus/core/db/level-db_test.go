@@ -228,10 +228,10 @@ func (s *LevelDBTestSuite) TestDKGProtocolInfoRLPEncodeDecode() {
 		},
 		AntiComplaintReceived: NodeIDToNodeIDs{
 			types.NodeID{Hash: common.Hash{0x01}}: map[types.NodeID]struct{}{
-				types.NodeID{Hash: common.Hash{0x02}}: {},
+				{Hash: common.Hash{0x02}}: {},
 			},
 			types.NodeID{Hash: common.Hash{0x03}}: map[types.NodeID]struct{}{
-				types.NodeID{Hash: common.Hash{0x04}}: {},
+				{Hash: common.Hash{0x04}}: {},
 			},
 		},
 		PrvSharesReceived: NodeID{
@@ -252,10 +252,10 @@ func (s *LevelDBTestSuite) TestDKGProtocolInfoRLPEncodeDecode() {
 func (s *LevelDBTestSuite) TestNodeIDToNodeIDsRLPEncodeDecode() {
 	m := NodeIDToNodeIDs{
 		types.NodeID{Hash: common.Hash{0x01}}: map[types.NodeID]struct{}{
-			types.NodeID{Hash: common.Hash{0x02}}: {},
+			{Hash: common.Hash{0x02}}: {},
 		},
 		types.NodeID{Hash: common.Hash{0x03}}: map[types.NodeID]struct{}{
-			types.NodeID{Hash: common.Hash{0x04}}: {},
+			{Hash: common.Hash{0x04}}: {},
 		},
 	}
 

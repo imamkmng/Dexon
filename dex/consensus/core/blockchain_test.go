@@ -154,7 +154,7 @@ func (s *BlockChainTestSuite) newBlockChain(initB *types.Block,
 		&testTSigVerifierGetter{}, s.signer, &common.NullLogger{})
 	// Provide the genesis round event.
 	s.Require().NoError(bc.notifyRoundEvents([]utils.RoundEventParam{
-		utils.RoundEventParam{
+		{
 			Round:       initRound,
 			Reset:       0,
 			BeginHeight: initHeight,
@@ -361,7 +361,7 @@ func (s *BlockChainTestSuite) TestNotifyRoundEvents() {
 	bc := s.newBlockChain(nil, roundLength)
 	newEvent := func(round, reset, height uint64) []utils.RoundEventParam {
 		return []utils.RoundEventParam{
-			utils.RoundEventParam{
+			{
 				Round:       round,
 				Reset:       reset,
 				BeginHeight: types.GenesisHeight + height,
@@ -400,7 +400,7 @@ func (s *BlockChainTestSuite) TestNextBlockAndTipRound() {
 	var roundLength uint64 = 3
 	bc := s.newBlockChain(nil, roundLength)
 	s.Require().NoError(bc.notifyRoundEvents([]utils.RoundEventParam{
-		utils.RoundEventParam{
+		{
 			Round:       1,
 			Reset:       0,
 			BeginHeight: types.GenesisHeight + roundLength,
@@ -598,7 +598,7 @@ func (s *BlockChainTestSuite) TestPrepareBlock() {
 	prepare1(true)
 	// Try to propose blocks at height=2, which should trigger round switch.
 	s.Require().NoError(bc.notifyRoundEvents([]utils.RoundEventParam{
-		utils.RoundEventParam{
+		{
 			Round:       1,
 			Reset:       0,
 			BeginHeight: types.GenesisHeight + roundLength,

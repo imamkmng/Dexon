@@ -222,7 +222,7 @@ func (e *RoundEvent) Register(h roundEventFn) {
 func (e *RoundEvent) TriggerInitEvent() {
 	e.lock.Lock()
 	defer e.lock.Unlock()
-	events := []RoundEventParam{RoundEventParam{
+	events := []RoundEventParam{{
 		Round:       e.lastTriggeredRound,
 		Reset:       e.lastTriggeredResetCount,
 		BeginHeight: e.config.LastPeriodBeginHeight(),
