@@ -23,7 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	dexCore "github.com/dexon-foundation/dexon-consensus/core"
+	dexCore "github.com/dexon-foundation/dexon/dex/consensus/core"
 
 	ethereum "github.com/dexon-foundation/dexon"
 	"github.com/dexon-foundation/dexon/common"

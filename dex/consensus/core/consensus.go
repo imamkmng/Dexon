@@ -24,13 +24,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dexon-foundation/dexon-consensus/common"
-	"github.com/dexon-foundation/dexon-consensus/core/crypto"
-	cryptoDKG "github.com/dexon-foundation/dexon-consensus/core/crypto/dkg"
-	"github.com/dexon-foundation/dexon-consensus/core/db"
-	"github.com/dexon-foundation/dexon-consensus/core/types"
-	typesDKG "github.com/dexon-foundation/dexon-consensus/core/types/dkg"
-	"github.com/dexon-foundation/dexon-consensus/core/utils"
+	"github.com/dexon-foundation/dexon/dex/consensus/common"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/crypto"
+	cryptoDKG "github.com/dexon-foundation/dexon/dex/consensus/core/crypto/dkg"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/db"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/types"
+	typesDKG "github.com/dexon-foundation/dexon/dex/consensus/core/types/dkg"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/utils"
 )
 
 // Errors for consensus core.
@@ -694,22 +694,22 @@ func newConsensusForRound(
 		tsigVerifierCache, signer, logger)
 	// Construct Consensus instance.
 	con := &Consensus{
-		ID:                       ID,
-		app:                      appModule,
-		debugApp:                 debugApp,
-		gov:                      gov,
-		db:                       db,
-		network:                  network,
-		baConfirmedBlock:         make(map[common.Hash]chan<- *types.Block),
-		dkgReady:                 sync.NewCond(&sync.Mutex{}),
-		cfgModule:                cfgModule,
-		bcModule:                 bcModule,
-		dMoment:                  dMoment,
-		nodeSetCache:             nodeSetCache,
-		tsigVerifierCache:        tsigVerifierCache,
-		signer:                   signer,
-		event:                    common.NewEvent(),
-		logger:                   logger,
+		ID:                ID,
+		app:               appModule,
+		debugApp:          debugApp,
+		gov:               gov,
+		db:                db,
+		network:           network,
+		baConfirmedBlock:  make(map[common.Hash]chan<- *types.Block),
+		dkgReady:          sync.NewCond(&sync.Mutex{}),
+		cfgModule:         cfgModule,
+		bcModule:          bcModule,
+		dMoment:           dMoment,
+		nodeSetCache:      nodeSetCache,
+		tsigVerifierCache: tsigVerifierCache,
+		signer:            signer,
+		event:             common.NewEvent(),
+		logger:            logger,
 		resetDeliveryGuardTicker: make(chan struct{}),
 		msgChan:                  make(chan types.Msg, 1024),
 		priorityMsgChan:          make(chan interface{}, 1024),

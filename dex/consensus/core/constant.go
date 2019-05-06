@@ -17,7 +17,7 @@
 
 package core
 
-import "github.com/dexon-foundation/dexon-consensus/core/utils"
+import "github.com/dexon-foundation/dexon/dex/consensus/core/utils"
 
 // ConfigRoundShift refers to the difference between block's round and config
 // round derived from its state.

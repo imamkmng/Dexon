@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/dexon-foundation/dexon-consensus/common"
-	"github.com/dexon-foundation/dexon-consensus/core/types"
-	typesDKG "github.com/dexon-foundation/dexon-consensus/core/types/dkg"
+	"github.com/dexon-foundation/dexon/dex/consensus/common"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/types"
+	typesDKG "github.com/dexon-foundation/dexon/dex/consensus/core/types/dkg"
 )
 
 // ErrUnmatchedBlockHeightWithConfig is for invalid parameters for NewRoundEvent.

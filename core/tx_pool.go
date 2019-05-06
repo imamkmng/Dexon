@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	dexCore "github.com/dexon-foundation/dexon-consensus/core"
+	dexCore "github.com/dexon-foundation/dexon/dex/consensus/core"
 
 	"github.com/dexon-foundation/dexon/common"
 	"github.com/dexon-foundation/dexon/common/prque"

@@ -24,13 +24,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dexon-foundation/dexon-consensus/common"
-	"github.com/dexon-foundation/dexon-consensus/core"
-	"github.com/dexon-foundation/dexon-consensus/core/crypto"
-	"github.com/dexon-foundation/dexon-consensus/core/crypto/dkg"
-	"github.com/dexon-foundation/dexon-consensus/core/types"
-	typesDKG "github.com/dexon-foundation/dexon-consensus/core/types/dkg"
-	"github.com/dexon-foundation/dexon-consensus/core/utils"
+	"github.com/dexon-foundation/dexon/dex/consensus/common"
+	"github.com/dexon-foundation/dexon/dex/consensus/core"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/crypto"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/crypto/dkg"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/types"
+	typesDKG "github.com/dexon-foundation/dexon/dex/consensus/core/types/dkg"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/utils"
 	"github.com/stretchr/testify/suite"
 )
 

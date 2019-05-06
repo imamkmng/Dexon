@@ -20,7 +20,7 @@ package test
 import (
 	"testing"
 
-	typesDKG "github.com/dexon-foundation/dexon-consensus/core/types/dkg"
+	typesDKG "github.com/dexon-foundation/dexon/dex/consensus/core/types/dkg"
 	"github.com/stretchr/testify/suite"
 )
 

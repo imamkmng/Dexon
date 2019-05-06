@@ -20,7 +20,7 @@ package types
 import (
 	"testing"
 
-	"github.com/dexon-foundation/dexon-consensus/common"
+	"github.com/dexon-foundation/dexon/dex/consensus/common"
 	"github.com/stretchr/testify/suite"
 )
 

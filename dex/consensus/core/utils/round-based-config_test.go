@@ -20,7 +20,7 @@ package utils
 import (
 	"testing"
 
-	"github.com/dexon-foundation/dexon-consensus/core/types"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/types"
 	"github.com/stretchr/testify/suite"
 )
 

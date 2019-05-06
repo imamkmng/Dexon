@@ -3,7 +3,7 @@ package rawdb
 import (
 	"bytes"
 
-	coreDKG "github.com/dexon-foundation/dexon-consensus/core/crypto/dkg"
+	coreDKG "github.com/dexon-foundation/dexon/dex/consensus/core/crypto/dkg"
 	"github.com/dexon-foundation/dexon/log"
 	"github.com/dexon-foundation/dexon/rlp"
 )

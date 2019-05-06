@@ -20,8 +20,8 @@ package utils
 import (
 	"errors"
 
-	"github.com/dexon-foundation/dexon-consensus/core/types"
-	typesDKG "github.com/dexon-foundation/dexon-consensus/core/types/dkg"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/types"
+	typesDKG "github.com/dexon-foundation/dexon/dex/consensus/core/types/dkg"
 )
 
 var (

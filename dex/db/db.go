@@ -18,10 +18,10 @@
 package db
 
 import (
-	coreCommon "github.com/dexon-foundation/dexon-consensus/common"
-	coreDKG "github.com/dexon-foundation/dexon-consensus/core/crypto/dkg"
-	coreDb "github.com/dexon-foundation/dexon-consensus/core/db"
-	coreTypes "github.com/dexon-foundation/dexon-consensus/core/types"
+	coreCommon "github.com/dexon-foundation/dexon/dex/consensus/common"
+	coreDKG "github.com/dexon-foundation/dexon/dex/consensus/core/crypto/dkg"
+	coreDb "github.com/dexon-foundation/dexon/dex/consensus/core/db"
+	coreTypes "github.com/dexon-foundation/dexon/dex/consensus/core/types"
 
 	"github.com/dexon-foundation/dexon/common"
 	"github.com/dexon-foundation/dexon/core/rawdb"

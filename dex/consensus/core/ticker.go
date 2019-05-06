@@ -23,7 +23,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dexon-foundation/dexon-consensus/core/utils"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/utils"
 )
 
 // TickerType is the type of ticker.

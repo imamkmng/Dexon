@@ -18,10 +18,10 @@
 package dex
 
 import (
-	coreCommon "github.com/dexon-foundation/dexon-consensus/common"
-	"github.com/dexon-foundation/dexon-consensus/core/crypto"
-	"github.com/dexon-foundation/dexon-consensus/core/types"
-	dkgTypes "github.com/dexon-foundation/dexon-consensus/core/types/dkg"
+	coreCommon "github.com/dexon-foundation/dexon/dex/consensus/common"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/crypto"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/types"
+	dkgTypes "github.com/dexon-foundation/dexon/dex/consensus/core/types/dkg"
 )
 
 type DexconNetwork struct {

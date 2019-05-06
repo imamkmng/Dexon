@@ -21,10 +21,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/dexon-foundation/dexon-consensus/common"
-	"github.com/dexon-foundation/dexon-consensus/core"
-	"github.com/dexon-foundation/dexon-consensus/core/types"
-	"github.com/dexon-foundation/dexon-consensus/core/utils"
+	"github.com/dexon-foundation/dexon/dex/consensus/common"
+	"github.com/dexon-foundation/dexon/dex/consensus/core"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/types"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/utils"
 )
 
 type configReader interface {

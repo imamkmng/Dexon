@@ -20,13 +20,13 @@ package utils
 import (
 	"errors"
 
-	"github.com/dexon-foundation/dexon-consensus/core/crypto/ecdsa"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/crypto/ecdsa"
 
-	"github.com/dexon-foundation/dexon-consensus/common"
-	"github.com/dexon-foundation/dexon-consensus/core/crypto"
-	"github.com/dexon-foundation/dexon-consensus/core/types"
-	typesDKG "github.com/dexon-foundation/dexon-consensus/core/types/dkg"
 	dexCrypto "github.com/dexon-foundation/dexon/crypto"
+	"github.com/dexon-foundation/dexon/dex/consensus/common"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/crypto"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/types"
+	typesDKG "github.com/dexon-foundation/dexon/dex/consensus/core/types/dkg"
 )
 
 // Errors for signer.

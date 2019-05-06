@@ -18,7 +18,7 @@
 package crypto
 
 import (
-	"github.com/dexon-foundation/dexon-consensus/common"
+	"github.com/dexon-foundation/dexon/dex/consensus/common"
 )
 
 // Signature is the basic signature type in DEXON.

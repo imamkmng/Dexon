@@ -24,7 +24,7 @@ import (
 
 	"github.com/dexon-foundation/bls/ffi/go/bls"
 
-	"github.com/dexon-foundation/dexon-consensus/core/crypto"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/crypto"
 )
 
 // PartialSignature is a partial signature in DKG+TSIG protocol.

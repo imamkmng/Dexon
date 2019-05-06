@@ -27,9 +27,9 @@ import (
 
 	"github.com/dexon-foundation/dexon/rlp"
 
-	"github.com/dexon-foundation/dexon-consensus/common"
-	"github.com/dexon-foundation/dexon-consensus/core/crypto"
 	dexCommon "github.com/dexon-foundation/dexon/common"
+	"github.com/dexon-foundation/dexon/dex/consensus/common"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/crypto"
 )
 
 // GenesisHeight refers to the initial height the genesis block should be.

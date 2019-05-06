@@ -26,8 +26,8 @@ import (
 	"time"
 
 	ethereum "github.com/dexon-foundation/dexon"
-	dexCore "github.com/dexon-foundation/dexon-consensus/core"
-	coreTypes "github.com/dexon-foundation/dexon-consensus/core/types"
+	dexCore "github.com/dexon-foundation/dexon/dex/consensus/core"
+	coreTypes "github.com/dexon-foundation/dexon/dex/consensus/core/types"
 
 	"github.com/dexon-foundation/dexon/common"
 	"github.com/dexon-foundation/dexon/consensus/dexcon"

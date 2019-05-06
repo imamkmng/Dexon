@@ -23,7 +23,7 @@ import (
 
 	"github.com/dexon-foundation/dexon/crypto"
 
-	"github.com/dexon-foundation/dexon-consensus/common"
+	"github.com/dexon-foundation/dexon/dex/consensus/common"
 )
 
 var (

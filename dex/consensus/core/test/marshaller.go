@@ -21,8 +21,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/dexon-foundation/dexon-consensus/core/types"
-	typesDKG "github.com/dexon-foundation/dexon-consensus/core/types/dkg"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/types"
+	typesDKG "github.com/dexon-foundation/dexon/dex/consensus/core/types/dkg"
 )
 
 // DefaultMarshaller is the default marshaller for testing core.Consensus.

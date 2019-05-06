@@ -21,13 +21,13 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/dexon-foundation/dexon-consensus/common"
-	"github.com/dexon-foundation/dexon-consensus/core/crypto"
-	"github.com/dexon-foundation/dexon-consensus/core/crypto/dkg"
-	"github.com/dexon-foundation/dexon-consensus/core/db"
-	"github.com/dexon-foundation/dexon-consensus/core/types"
-	typesDKG "github.com/dexon-foundation/dexon-consensus/core/types/dkg"
-	"github.com/dexon-foundation/dexon-consensus/core/utils"
+	"github.com/dexon-foundation/dexon/dex/consensus/common"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/crypto"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/crypto/dkg"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/db"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/types"
+	typesDKG "github.com/dexon-foundation/dexon/dex/consensus/core/types/dkg"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/utils"
 )
 
 // Errors for dkg module.
@@ -160,8 +160,8 @@ func (d *dkgProtocol) toDKGProtocolInfo() db.DKGProtocolInfo {
 		PrvSharesReceived:     d.prvSharesReceived,
 		NodeComplained:        d.nodeComplained,
 		AntiComplaintReceived: d.antiComplaintReceived,
-		Step:                  uint64(d.step),
-		Reset:                 d.reset,
+		Step:  uint64(d.step),
+		Reset: d.reset,
 	}
 
 	if d.masterPrivateShare != nil {

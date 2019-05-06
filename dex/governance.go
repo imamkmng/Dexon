@@ -22,8 +22,8 @@ import (
 	"crypto/ecdsa"
 	"math/big"
 
-	coreTypes "github.com/dexon-foundation/dexon-consensus/core/types"
-	dkgTypes "github.com/dexon-foundation/dexon-consensus/core/types/dkg"
+	coreTypes "github.com/dexon-foundation/dexon/dex/consensus/core/types"
+	dkgTypes "github.com/dexon-foundation/dexon/dex/consensus/core/types/dkg"
 
 	"github.com/dexon-foundation/dexon/common"
 	"github.com/dexon-foundation/dexon/core"

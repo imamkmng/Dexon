@@ -33,14 +33,14 @@ import (
 	"github.com/dexon-foundation/dexon/params"
 	"github.com/dexon-foundation/dexon/rlp"
 
-	coreCommon "github.com/dexon-foundation/dexon-consensus/common"
-	dexCore "github.com/dexon-foundation/dexon-consensus/core"
-	coreCrypto "github.com/dexon-foundation/dexon-consensus/core/crypto"
-	coreUtils "github.com/dexon-foundation/dexon-consensus/core/utils"
+	coreCommon "github.com/dexon-foundation/dexon/dex/consensus/common"
+	dexCore "github.com/dexon-foundation/dexon/dex/consensus/core"
+	coreCrypto "github.com/dexon-foundation/dexon/dex/consensus/core/crypto"
+	coreUtils "github.com/dexon-foundation/dexon/dex/consensus/core/utils"
 
-	"github.com/dexon-foundation/dexon-consensus/core/crypto/ecdsa"
-	coreTypes "github.com/dexon-foundation/dexon-consensus/core/types"
-	dkgTypes "github.com/dexon-foundation/dexon-consensus/core/types/dkg"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/crypto/ecdsa"
+	coreTypes "github.com/dexon-foundation/dexon/dex/consensus/core/types"
+	dkgTypes "github.com/dexon-foundation/dexon/dex/consensus/core/types/dkg"
 )
 
 type Bytes32 [32]byte

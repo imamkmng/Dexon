@@ -3,7 +3,7 @@ package rawdb
 import (
 	"bytes"
 
-	coreDb "github.com/dexon-foundation/dexon-consensus/core/db"
+	coreDb "github.com/dexon-foundation/dexon/dex/consensus/core/db"
 	"github.com/dexon-foundation/dexon/log"
 	"github.com/dexon-foundation/dexon/rlp"
 )

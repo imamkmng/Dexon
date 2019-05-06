@@ -6,10 +6,10 @@ import (
 	"math/big"
 	"os"
 
-	coreTypes "github.com/dexon-foundation/dexon-consensus/core/types"
-	dkgTypes "github.com/dexon-foundation/dexon-consensus/core/types/dkg"
 	"github.com/dexon-foundation/dexon/cmd/utils"
 	"github.com/dexon-foundation/dexon/core/vm"
+	coreTypes "github.com/dexon-foundation/dexon/dex/consensus/core/types"
+	dkgTypes "github.com/dexon-foundation/dexon/dex/consensus/core/types/dkg"
 	"github.com/dexon-foundation/dexon/rlp"
 	"gopkg.in/urfave/cli.v1"
 )

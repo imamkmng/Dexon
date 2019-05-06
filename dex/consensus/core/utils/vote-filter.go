@@ -18,7 +18,7 @@
 package utils
 
 import (
-	"github.com/dexon-foundation/dexon-consensus/core/types"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/types"
 )
 
 // VoteFilter filters votes that are useless for now.

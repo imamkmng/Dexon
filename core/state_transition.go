@@ -23,9 +23,9 @@ import (
 	"math/big"
 	"sync/atomic"
 
-	dexCore "github.com/dexon-foundation/dexon-consensus/core"
 	"github.com/dexon-foundation/dexon/common"
 	"github.com/dexon-foundation/dexon/core/vm"
+	dexCore "github.com/dexon-foundation/dexon/dex/consensus/core"
 	"github.com/dexon-foundation/dexon/log"
 	"github.com/dexon-foundation/dexon/params"
 )

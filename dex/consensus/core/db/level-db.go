@@ -23,9 +23,9 @@ import (
 
 	"github.com/syndtr/goleveldb/leveldb"
 
-	"github.com/dexon-foundation/dexon-consensus/common"
-	"github.com/dexon-foundation/dexon-consensus/core/crypto/dkg"
-	"github.com/dexon-foundation/dexon-consensus/core/types"
+	"github.com/dexon-foundation/dexon/dex/consensus/common"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/crypto/dkg"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/types"
 	"github.com/dexon-foundation/dexon/rlp"
 )
 

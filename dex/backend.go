@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dexon-foundation/dexon-consensus/core/syncer"
 	"github.com/dexon-foundation/dexon/accounts"
 	"github.com/dexon-foundation/dexon/consensus"
 	"github.com/dexon-foundation/dexon/consensus/dexcon"
@@ -29,6 +28,7 @@ import (
 	"github.com/dexon-foundation/dexon/core/bloombits"
 	"github.com/dexon-foundation/dexon/core/rawdb"
 	"github.com/dexon-foundation/dexon/core/vm"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/syncer"
 	"github.com/dexon-foundation/dexon/dex/downloader"
 	"github.com/dexon-foundation/dexon/eth/filters"
 	"github.com/dexon-foundation/dexon/eth/gasprice"

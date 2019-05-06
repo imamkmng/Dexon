@@ -21,12 +21,12 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/dexon-foundation/dexon-consensus/common"
-	"github.com/dexon-foundation/dexon-consensus/core/crypto"
-	"github.com/dexon-foundation/dexon-consensus/core/types"
-	typesDKG "github.com/dexon-foundation/dexon-consensus/core/types/dkg"
 	dexCommon "github.com/dexon-foundation/dexon/common"
 	dexCrypto "github.com/dexon-foundation/dexon/crypto"
+	"github.com/dexon-foundation/dexon/dex/consensus/common"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/crypto"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/types"
+	typesDKG "github.com/dexon-foundation/dexon/dex/consensus/core/types/dkg"
 )
 
 func hashWitness(witness *types.Witness) (common.Hash, error) {

@@ -20,9 +20,9 @@ package test
 import (
 	"time"
 
-	"github.com/dexon-foundation/dexon-consensus/core/crypto"
-	"github.com/dexon-foundation/dexon-consensus/core/db"
-	"github.com/dexon-foundation/dexon-consensus/core/types"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/crypto"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/db"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/types"
 )
 
 // BlockRevealer defines the interface to reveal a group

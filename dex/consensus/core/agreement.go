@@ -24,9 +24,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/dexon-foundation/dexon-consensus/common"
-	"github.com/dexon-foundation/dexon-consensus/core/types"
-	"github.com/dexon-foundation/dexon-consensus/core/utils"
+	"github.com/dexon-foundation/dexon/dex/consensus/common"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/types"
+	"github.com/dexon-foundation/dexon/dex/consensus/core/utils"
 )
 
 // closedchan is a reusable closed channel.
@@ -147,7 +147,7 @@ func newAgreement(
 			ID:     ID,
 			leader: leader,
 		},
-		aID:                    &atomic.Value{},
+		aID: &atomic.Value{},
 		pendingAgreementResult: make(map[types.Position]*types.AgreementResult),
 		candidateBlock:         make(map[common.Hash]*types.Block),
 		fastForward:            make(chan uint64, 1),

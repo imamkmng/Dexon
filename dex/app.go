@@ -25,8 +25,8 @@ import (
 	"sync"
 	"time"
 
-	coreCommon "github.com/dexon-foundation/dexon-consensus/common"
-	coreTypes "github.com/dexon-foundation/dexon-consensus/core/types"
+	coreCommon "github.com/dexon-foundation/dexon/dex/consensus/common"
+	coreTypes "github.com/dexon-foundation/dexon/dex/consensus/core/types"
 
 	"github.com/dexon-foundation/dexon/common"
 	"github.com/dexon-foundation/dexon/core"

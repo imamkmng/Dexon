@@ -24,9 +24,9 @@ import (
 	"strings"
 	"testing"
 
-	coreCommon "github.com/dexon-foundation/dexon-consensus/common"
-	coreDb "github.com/dexon-foundation/dexon-consensus/core/db"
-	coreTypes "github.com/dexon-foundation/dexon-consensus/core/types"
+	coreCommon "github.com/dexon-foundation/dexon/dex/consensus/common"
+	coreDb "github.com/dexon-foundation/dexon/dex/consensus/core/db"
+	coreTypes "github.com/dexon-foundation/dexon/dex/consensus/core/types"
 )
 
 type byHash []*coreTypes.Vote
