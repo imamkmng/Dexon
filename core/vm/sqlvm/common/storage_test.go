@@ -208,21 +208,11 @@ func (s *StorageTestSuite) TestSequence() {
 func (s *StorageTestSuite) TestPKHeaderEncodeDecode() {
 	lastRowID := uint64(5566)
 	rowCount := uint64(6655)
-	newLastRowID, newRowCount := s.storage.DecodePKHeader(s.storage.EncodePKHeader(lastRowID, rowCount))
+	bm := bitMap{}
+	bm.encodeHeader(lastRowID, rowCount)
+	newLastRowID, newRowCount := bm.decodeHeader()
 	s.Require().Equal(lastRowID, newLastRowID)
 	s.Require().Equal(rowCount, newRowCount)
-}
-
-func (s *StorageTestSuite) TestUpdateHash() {
-	m := map[common.Hash]common.Hash{
-		common.BytesToHash([]byte("hello world")): common.BytesToHash([]byte("hello SQLVM")),
-		common.BytesToHash([]byte("bye world")):   common.BytesToHash([]byte("bye SQLVM")),
-	}
-	s.storage.UpdateHash(m, s.address)
-	for key, val := range m {
-		rVal := s.storage.GetState(s.address, key)
-		s.Require().Equal(val, rVal)
-	}
 }
 
 func (s *StorageTestSuite) TestRepeatPK() {
@@ -249,9 +239,41 @@ func (s *StorageTestSuite) TestRepeatPK() {
 		},
 	}
 	for i, t := range testCases {
-		s.storage.SetPK(t.address, t.tableRef, t.expectIDs)
+		headerSlot := s.storage.GetPrimaryPathHash(t.tableRef)
+		s.storage.SetPK(t.address, headerSlot, t.expectIDs)
 		IDs := s.storage.RepeatPK(t.address, t.tableRef)
 		s.Require().Equalf(t.expectIDs, IDs, "testCase #%v\n", i)
+	}
+}
+
+func (s *StorageTestSuite) TestBitMapIncreasePK() {
+	type testCase struct {
+		tableRef schema.TableRef
+		IDs      []uint64
+	}
+	testCases := []testCase{
+		{
+			tableRef: schema.TableRef(0),
+			IDs:      []uint64{0, 1, 2},
+		},
+		{
+			tableRef: schema.TableRef(1),
+			IDs:      []uint64{1234, 5566},
+		},
+		{
+			tableRef: schema.TableRef(2),
+			IDs:      []uint64{0, 128, 256, 512, 1024},
+		},
+	}
+	for i, t := range testCases {
+		hash := s.storage.GetPrimaryPathHash(t.tableRef)
+		s.storage.SetPK(s.address, hash, t.IDs)
+		bm := newBitMap(hash, s.address, s.storage)
+		newID := bm.increasePK()
+
+		t.IDs = append(t.IDs, newID)
+		IDs := s.storage.RepeatPK(s.address, t.tableRef)
+		s.Require().Equalf(t.IDs, IDs, "testCase #%v\n", i)
 	}
 }
 
