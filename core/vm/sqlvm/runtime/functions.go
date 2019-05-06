@@ -448,6 +448,12 @@ func fnSubString(ctx *common.Context, ops []*Operand, length uint64) (result *Op
 		return
 	}
 
+	if len(ops[0].Data) != len(ops[1].Data) ||
+		len(ops[0].Data) != len(ops[2].Data) {
+		err = se.ErrorCodeIndexOutOfRange
+		return
+	}
+
 	op := ops[0]
 
 	if !metaAllDynBytes(op) {
@@ -464,28 +470,34 @@ func fnSubString(ctx *common.Context, ops []*Operand, length uint64) (result *Op
 		result.Meta[i] = dynBytesType
 	}
 
-	starts, err := ops[1].toUint64()
-	if err == nil && len(starts) != 1 {
-		err = se.ErrorCodeIndexOutOfRange
-	}
-	if err != nil {
-		return
-	}
+	starts, ends := ops[1], ops[2]
 
-	lens, err := ops[2].toUint64()
-	if err == nil && len(lens) != 1 {
-		err = se.ErrorCodeIndexOutOfRange
-	}
-	if err != nil {
-		return
-	}
-
-	start, end := starts[0], starts[0]+lens[0]
-
+	var start, end uint64
 	for i := 0; i < len(op.Data); i++ {
 		result.Data[i] = make(Tuple, len(op.Data[i]))
+
+		if starts.IsImmediate {
+			start, err = ast.DecimalToUint64(starts.Data[0][0].Value)
+		} else {
+			start, err = ast.DecimalToUint64(starts.Data[i][0].Value)
+		}
+
+		if err != nil {
+			return
+		}
+
+		if ends.IsImmediate {
+			end, err = ast.DecimalToUint64(ends.Data[0][0].Value)
+		} else {
+			end, err = ast.DecimalToUint64(ends.Data[i][0].Value)
+		}
+
+		if err != nil {
+			return
+		}
+
 		for j := 0; j < len(op.Data[i]); j++ {
-			result.Data[i][j] = &Raw{Bytes: op.Data[i][j].Bytes[start:end]}
+			result.Data[i][j] = &Raw{Bytes: op.Data[i][j].Bytes[start : start+end]}
 		}
 	}
 	return
