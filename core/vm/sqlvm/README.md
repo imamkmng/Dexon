@@ -30,7 +30,7 @@
             * [Other indices](#other-indices)
                * [List of keys](#list-of-keys-1)
                * [Actual data](#actual-data-1)
-            * [Sequence(auto increment)](#sequenceauto-increment)
+            * [Sequence (auto increment)](#sequenceauto-increment)
             * [NULL value](#null-value)
             * [Compound index](#compound-index)
             * [Contract owner](#contract-owner)
@@ -58,7 +58,7 @@
 
 ## **Objective**
 
-The objective is to provide the programmers with a friendly SQL interface which they are familiar with.  SQLVM is implemented alongside with EVM, such that DEXON DApp developer can use SQL syntax to handle their data. It would support a subset of SQL operations.
+The objective is to provide programmers with a friendly SQL interface which they are familiar with. SQLVM is implemented alongside with EVM, such that DEXON DApp developers can use SQL syntax to handle their data. It would support a subset of SQL operations.
 
 ## **Background**
 
@@ -376,7 +376,7 @@ Bitmap:
 ##### Actual data
 Key
 ```
-PathKey(["tables", uint8(table_idx), "primary", uint64({row_id})])
+PathKey(["tables", uint8(table_idx), "primary", uint64(row_id)])
 ```
 
 Value
@@ -396,7 +396,7 @@ PathKey(["tables", uint8(table_idx), "indices", uint8(index_idx)])
 
 Value
 ```golang
-type PossibleValues struct {
+type IndexValues struct {
 	// Slot 1.
 	Length          uint64
 	<unused>        uint64
@@ -416,10 +416,10 @@ PathKey(["tables", uint8(table_idx), "indices", uint8(index_idx), field_1, field
 ```
 Value
 ```golang
-type IndexKeys struct {
+type IndexEntry struct {
 	// Slot 1.
 	Length                      uint64
-	IndexToPossibleValuesOffset uint64
+	IndexToIndexValuesOffset uint64
 	ForeignKeyReferenceCount    uint64
 	<unused>                    uint64
 	// Slot 2.
@@ -433,7 +433,7 @@ type IndexKeys struct {
 }
 ```
 
-#### Sequence(auto increment)
+#### Sequence (auto increment)
 Key
 ```
 PathKey(["tables", uint8(table_idx), "sequence", uint8(sequence_idx)])
@@ -492,7 +492,7 @@ type PossibleValues struct {
 ##### Actual data
 Key
 ```
-PathKey(["tables", uint8(table_idx), "writers", "addr"])
+PathKey(["tables", uint8(table_idx), "writers", uint160(addr)])
 ```
 Value
 ```golang
@@ -698,7 +698,7 @@ const (
 	// CUT(src, (start[, end]))
 	// CUT(
 	//      [(r1f1, r1f2, r1f3, r1f4),
-	//      (r2f1, r2f2, r2f3, r2f4), ...], [(1, 2)]
+	//       (r2f1, r2f2, r2f3, r2f4), ...], [(1, 2)]
 	// ) = [(r1f1, r1f4), (r2f1, r2f4), ...]
 	RANGE // in-place op
 	// RANGE(src, range) = res
@@ -760,14 +760,14 @@ const (
 ##### Examples
 *   SELECT * FROM a
     *   REPEATPK(a) t1
-    *   LOAD(a, t1, [0,1,2,3,4,5]) t2
+    *   LOAD(a, t1, [0, 1, 2, 3, 4, 5]) t2
     *   ZIP(t2)
 *   SELECT f1, f3, f5 FROM a WHERE f1=val (index hit)
     *   REPEATIDXV(a_f1_idx) t1
     *   EQ(t1, val) t3
     *   FILTER(t1, t3) t4
     *   REPEATIDX(a_f1_idx, t4) t5
-    *   LOAD(a, t5, [1,3,5]) t6
+    *   LOAD(a, t5, [1, 3, 5]) t6
     *   ZIP(t6)
 *   SELECT f1, f3, f5 FROM a WHERE f1 > val (index scan)
     *   REPEATIDXV(a_f1_idx) t1
@@ -787,22 +787,22 @@ const (
     *   GT(t3, t4) t5
     *   FIELD(t2, [5]) t9
     *   ZIP(t5, t9) t10
-*   DELETE FROM a WHERE f2 = 'c' (idx hit)
+*   DELETE FROM a WHERE f2 = 'c' (index hit)
     *   REPEATIDX(a_f2_idx, ['c']) t1
     *   DELETE(a, t1)
 *   UPDATE a SET f1 = 'new'
     *   REPEATPK(a) t1
     *   UPDATE(a, t1, [1], ['new'])
 *   INSERT a VALUES (f1, f2, f3), (g1, g2, g3);
-    *   INSERT(a, [1,2,3], (f1, f2, f3))
-    *   INSERT(a, [1,2,3], (g1, g2, g3))
-*   INSERT INTO a (c0,c3,c5) VALUES (NOW(), MSGSENDER(), RAND());
+    *   INSERT(a, [1, 2, 3], (f1, f2, f3))
+    *   INSERT(a, [1, 2, 3], (g1, g2, g3))
+*   INSERT INTO a (c0, c3, c5) VALUES (NOW(), MSGSENDER(), RAND());
     *   FUNC('NOW') t1          // t1 = [(block_height)]
     *   FUNC('MEGSENDER') t2    // t2 = [(address     )]
     *   FUNC('RAND') t3         // t3 = [(rand_num    )]
     *   ZIP(t1, t2) t1          // t1 = [(block_height, address)]
     *   ZIP(t1, t3) t1          // t1 = [(block_height, address, rand_num)]
-    *   INSERT(a, [0,3,5], t1)
+    *   INSERT(a, [0, 3, 5], t1)
 
 ##### Storage ops details
 
@@ -886,7 +886,7 @@ This section contains some corner cases found in design stage. Can be used for t
     * `fixBytes3Data || fixBytes5Data`
         * Return bytes8
         * Abort if larger than 32
-    * CAST fixBytes to DynamciByte and Dynamicbyte to fixBytes
+    * CAST fixed bytes to dynamic bytes and dynamic bytes to fixed bytes
     * `fixBytes5Data [=|>|<] fixBytesData5`
     * `fixByte5Data bitwise op fixBytes5Data`
         *   `op: BITAND, BITOR, BITXOR, BITNOT`
